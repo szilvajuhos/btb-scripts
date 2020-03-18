@@ -1,0 +1,78 @@
+##fileformat=VCFv4.1
+##contig=<ID=chr1,length=248956422>
+##contig=<ID=chr2,length=242193529>
+##contig=<ID=chr3,length=198295559>
+##contig=<ID=chr4,length=190214555>
+##contig=<ID=chr5,length=181538259>
+##contig=<ID=chr6,length=170805979>
+##contig=<ID=chr7,length=159345973>
+##contig=<ID=chr8,length=145138636>
+##contig=<ID=chr9,length=138394717>
+##contig=<ID=chr10,length=133797422>
+##contig=<ID=chr11,length=135086622>
+##contig=<ID=chr12,length=133275309>
+##contig=<ID=chr13,length=114364328>
+##contig=<ID=chr14,length=107043718>
+##contig=<ID=chr15,length=101991189>
+##contig=<ID=chr16,length=90338345>
+##contig=<ID=chr17,length=83257441>
+##contig=<ID=chr18,length=80373285>
+##contig=<ID=chr19,length=58617616>
+##contig=<ID=chr20,length=64444167>
+##contig=<ID=chr21,length=46709983>
+##contig=<ID=chr22,length=50818468>
+##contig=<ID=chrX,length=156040895>
+##contig=<ID=chrY,length=57227415>
+##contig=<ID=chrM,length=16569>
+##FILTER=<ID=LowDepth,Description="Tumor or normal sample read depth at this locus is below 2">
+##FILTER=<ID=LowEVS,Description="Somatic Empirical Variant Score (SomaticEVS) is below threshold">
+##INFO=<ID=CAF,Number=A,Type=Float,Description="CAF Allele Frequency, an ordered, comma delimited list of the alternate allele frequencies based on 1000Genomes, for each ALT allele, in the same order as listed. (from /castor/project/proj_nobackup/vcfanno/00-All.dbsnp_151.hg38.CAF.TOPMED.alternate.allele.freq.vcf.gz)">
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Combined depth across samples">
+##INFO=<ID=HMAF,Number=A,Type=Float,Description="HapMap Allele frequency (from /castor/project/proj_nobackup/vcfanno/hapmap_3.3_grch38_pop_stratified_af.HMAF.vcf.gz)">
+##INFO=<ID=MQ,Number=1,Type=Float,Description="RMS Mapping Quality">
+##INFO=<ID=MQ0,Number=1,Type=Integer,Description="Total Mapping Quality Zero Reads">
+##INFO=<ID=NT,Number=1,Type=String,Description="Genotype of the normal in all data tiers, as used to classify somatic variants. One of {ref,het,hom,conflict}.">
+##INFO=<ID=PNOISE,Number=1,Type=Float,Description="Fraction of panel containing non-reference noise at this site">
+##INFO=<ID=PNOISE2,Number=1,Type=Float,Description="Fraction of panel containing more than one non-reference noise obs at this site">
+##INFO=<ID=QSS,Number=1,Type=Integer,Description="Quality score for any somatic snv, ie. for the ALT allele to be present at a significantly different frequency in the tumor and normal">
+##INFO=<ID=QSS_NT,Number=1,Type=Integer,Description="Quality score reflecting the joint probability of a somatic variant and NT">
+##INFO=<ID=ReadPosRankSum,Number=1,Type=Float,Description="Z-score from Wilcoxon rank sum test of Alt Vs. Ref read-position in the tumor">
+##INFO=<ID=SGT,Number=1,Type=String,Description="Most likely somatic genotype excluding normal noise states">
+##INFO=<ID=SNVSB,Number=1,Type=Float,Description="Somatic SNV site strand bias">
+##INFO=<ID=SOMATIC,Number=0,Type=Flag,Description="Somatic mutation">
+##INFO=<ID=SomaticEVS,Number=1,Type=Float,Description="Somatic Empirical Variant Score (EVS) expressing the phred-scaled probability of the call being a false positive observation.">
+##INFO=<ID=TOPMED,Number=A,Type=Float,Description="TOPMED Allele Frequency, an ordered, comma delimited list of the alternate allele frequencies based on TOPMED, for each ALT allele, in the same order as listed. (from /castor/project/proj_nobackup/vcfanno/00-All.dbsnp_151.hg38.CAF.TOPMED.alternate.allele.freq.vcf.gz)">
+##INFO=<ID=TQSS,Number=1,Type=Integer,Description="Data tier used to compute QSS">
+##INFO=<ID=TQSS_NT,Number=1,Type=Integer,Description="Data tier used to compute QSS_NT">
+##INFO=<ID=dbSNP,Number=1,Type=String,Description="calculated by self of overlapping values in field ID from /castor/project/proj_nobackup/vcfanno/00-All.dbsnp_151.hg38.CAF.TOPMED.alternate.allele.freq.vcf.gz">
+##FORMAT=<ID=AU,Number=2,Type=Integer,Description="Number of 'A' alleles used in tiers 1,2">
+##FORMAT=<ID=CU,Number=2,Type=Integer,Description="Number of 'C' alleles used in tiers 1,2">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Read depth for tier1 (used+filtered)">
+##FORMAT=<ID=FDP,Number=1,Type=Integer,Description="Number of basecalls filtered from original read depth for tier1">
+##FORMAT=<ID=GU,Number=2,Type=Integer,Description="Number of 'G' alleles used in tiers 1,2">
+##FORMAT=<ID=SDP,Number=1,Type=Integer,Description="Number of reads with deletions spanning this site at tier1">
+##FORMAT=<ID=SUBDP,Number=1,Type=Integer,Description="Number of reads below tier1 mapping quality threshold aligned across this site">
+##FORMAT=<ID=TU,Number=2,Type=Integer,Description="Number of 'T' alleles used in tiers 1,2">
+##fileDate=20181122
+##source=strelka
+##source_version=2.9.3
+##startTime=Thu Nov 22 15:35:23 2018
+##reference=file:///sw/data/uppnex/ToolBox/hg38bundle/Homo_sapiens_assembly38.fasta
+##content=strelka somatic snv calls
+##priorSomaticSnvRate=0.0001
+##SnpEffVersion="4.3r (build 2017-09-06 16:41), by Pablo Cingolani"
+##INFO=<ID=ANN,Number=.,Type=String,Description="Functional annotations: 'Allele | Annotation | Annotation_Impact | Gene_Name | Gene_ID | Feature_Type | Feature_ID | Transcript_BioType | Rank | HGVS.c | HGVS.p | cDNA.pos / cDNA.length | CDS.pos / CDS.length | AA.pos / AA.length | Distance | ERRORS / WARNINGS / INFO' ">
+##INFO=<ID=LOF,Number=.,Type=String,Description="Predicted loss of function effects for this variant. Format: 'Gene_Name | Gene_ID | Number_of_transcripts_in_gene | Percent_of_transcripts_affected'">
+##INFO=<ID=NMD,Number=.,Type=String,Description="Predicted nonsense mediated decay effects for this variant. Format: 'Gene_Name | Gene_ID | Number_of_transcripts_in_gene | Percent_of_transcripts_affected'">
+##VEP="v92" time="2018-11-27 11:06:39" cache="/sw/data/uppnex/vep/92/homo_sapiens/92_GRCh38" 1000genomes="phase3" COSMIC="83" ClinVar="201802" ESP="V2-SSA137" HGMD-PUBLIC="20174" assembly="GRCh38.p12" dbSNP="150" gencode="GENCODE 28" genebuild="2014-07" gnomAD="170228" polyphen="2.2.2" regbuild="16" sift="sift5.2.2"
+##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence annotations from Ensembl VEP. Format: Allele|Consequence|IMPACT|SYMBOL|Gene|Feature_type|Feature|BIOTYPE|EXON|INTRON|HGVSc|HGVSp|cDNA_position|CDS_position|Protein_position|Amino_acids|Codons|Existing_variation|DISTANCE|STRAND|FLAGS|VARIANT_CLASS|SYMBOL_SOURCE|HGNC_ID|CANONICAL|TSL|APPRIS|CCDS|ENSP|SWISSPROT|TREMBL|UNIPARC|GENE_PHENO|SIFT|PolyPhen|DOMAINS|miRNA|HGVS_OFFSET|AF|AFR_AF|AMR_AF|EAS_AF|EUR_AF|SAS_AF|AA_AF|EA_AF|gnomAD_AF|gnomAD_AFR_AF|gnomAD_AMR_AF|gnomAD_ASJ_AF|gnomAD_EAS_AF|gnomAD_FIN_AF|gnomAD_NFE_AF|gnomAD_OTH_AF|gnomAD_SAS_AF|MAX_AF|MAX_AF_POPS|FREQS|CLIN_SIG|SOMATIC|PHENO|PUBMED|MOTIF_NAME|MOTIF_POS|HIGH_INF_POS|MOTIF_SCORE_CHANGE">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	NORMAL	TUMOR
+chr1	173659244	.	C	G	.	PASS	SOMATIC;QSS=38;TQSS=1;NT=ref;QSS_NT=38;TQSS_NT=1;SGT=CC->CG;DP=848;MQ=60.00;MQ0=0;ReadPosRankSum=-0.43;SNVSB=0.00;SomaticEVS=7.81;ANN=G|missense_variant|MODERATE|ANKRD45|ENSG00000183831|transcript|ENST00000333279.2|protein_coding|2/6|c.175G>C|p.Glu59Gln|236/1446|175/801|59/266||;CSQ=G|missense_variant|MODERATE|ANKRD45|ENSG00000183831|Transcript|ENST00000333279|protein_coding|2/6||ENST00000333279.2:c.175G>C|ENSP00000331268.2:p.Glu59Gln|236/1446|175/801|59/266|E/Q|Gag/Cag|||-1||SNV|HGNC|HGNC:24786|YES|1|P1|CCDS1309.1|ENSP00000331268|Q5TZF3||UPI000019851A||deleterious(0.03)|possibly_damaging(0.897)|Gene3D:1.25.40.20&hmmpanther:PTHR24180&hmmpanther:PTHR24180:SF14&Superfamily_domains:SSF48403||||||||||||||||||||||||||||||	DP:FDP:SDP:SUBDP:AU:CU:GU:TU	188:0:0:0:0,0:188,188:0,0:0,0	658:1:0:0:1,1:648,651:8,8:0,0
+chr5	151123031	.	T	G	.	PASS	SOMATIC;QSS=76;TQSS=1;NT=ref;QSS_NT=76;TQSS_NT=1;SGT=TT->GT;DP=327;MQ=60.00;MQ0=0;ReadPosRankSum=2.34;SNVSB=0.00;SomaticEVS=10.20;ANN=G|intron_variant|MODIFIER|ANXA6|ENSG00000197043|transcript|ENST00000354546.9|protein_coding|15/25|c.1139-20A>C||||||;CSQ=G|intron_variant|MODIFIER|ANXA6|ENSG00000197043|Transcript|ENST00000354546|protein_coding||15/25|ENST00000354546.9:c.1139-20A>C|||||||||-1||SNV|HGNC|HGNC:544|YES|1|P1|CCDS47315.1|ENSP00000346550|P08133|A0A0S2Z2Z6|UPI000013CB37||||||||||||||||||||||||||||||||||	DP:FDP:SDP:SUBDP:AU:CU:GU:TU	102:0:0:0:0,0:0,0:0,0:102,102	225:0:1:0:0,0:2,2:9,9:214,214
+chr7	6691730	.	T	G	.	PASS	SOMATIC;QSS=56;TQSS=1;NT=ref;QSS_NT=56;TQSS_NT=1;SGT=TT->GT;DP=817;MQ=60.00;MQ0=0;ReadPosRankSum=-1.53;SNVSB=0.00;SomaticEVS=10.22;ANN=G|synonymous_variant|LOW|ZNF12|ENSG00000164631|transcript|ENST00000405858.5|protein_coding|5/5|c.1212A>C|p.Thr404Thr|1754/5051|1212/2094|404/697||,G|intron_variant|MODIFIER|AC073343.13|ENSG00000228010|transcript|ENST00000366167.2|antisense|2/3|n.136-16571T>G||||||;CSQ=G|synonymous_variant|LOW|ZNF12|ENSG00000164631|Transcript|ENST00000405858|protein_coding|5/5||ENST00000405858.5:c.1212A>C|ENSP00000385939.1:p.Thr404%3D|1754/5051|1212/2094|404/697|T|acA/acC|rs769562571||-1||SNV|HGNC|HGNC:12902|YES|1|P4|CCDS47538.1|ENSP00000385939|P17014||UPI000020EAF7||||Gene3D:3.30.160.60&PROSITE_profiles:PS50157&hmmpanther:PTHR24376&hmmpanther:PTHR24376:SF66&Superfamily_domains:SSF57667||||||||||||||||||||||||||||||,G|intron_variant&non_coding_transcript_variant|MODIFIER|AC073343.2|ENSG00000228010|Transcript|ENST00000366167|antisense||2/3|ENST00000366167.2:n.136-16571T>G|||||||rs769562571||1||SNV|Clone_based_ensembl_gene||YES|4||||||||||||||||||||||||||||||||||||||||	DP:FDP:SDP:SUBDP:AU:CU:GU:TU	232:0:0:0:0,0:0,0:0,0:232,232	581:0:0:0:1,1:2,2:9,9:569,573
+chr12	113095450	.	A	C	.	PASS	SOMATIC;QSS=35;TQSS=2;NT=ref;QSS_NT=35;TQSS_NT=2;SGT=AA->AC;DP=244;MQ=60.00;MQ0=0;ReadPosRankSum=-0.91;SNVSB=0.00;SomaticEVS=7.71;ANN=C|downstream_gene_variant|MODIFIER|RASAL1|ENSG00000111344|transcript|ENST00000546530.5|protein_coding||c.*4479T>G|||||3369|,C|intron_variant|MODIFIER|DTX1|ENSG00000135144|transcript|ENST00000257600.3|protein_coding|8/8|c.1638+36A>C||||||;CSQ=C|downstream_gene_variant|MODIFIER|RASAL1|ENSG00000111344|Transcript|ENST00000546530|protein_coding|||||||||||3369|-1||SNV|HGNC|HGNC:9873|YES|1|A2|CCDS55889.1|ENSP00000450244|O95294||UPI0001DD37FE||||||||||||||||||||||||||||||||||,C|intron_variant|MODIFIER|DTX1|ENSG00000135144|Transcript|ENST00000257600|protein_coding||8/8|ENST00000257600.3:c.1638+36A>C|||||||||1||SNV|HGNC|HGNC:3060|YES|1|P1|CCDS9164.1|ENSP00000257600|Q86Y01||UPI000013CF71||||||||||||||||||||||||||||||||||	DP:FDP:SDP:SUBDP:AU:CU:GU:TU	75:0:0:0:75,75:0,0:0,0:0,0	168:0:0:0:163,164:4,4:1,1:0,0
+chr14	30905643	.	C	T	.	PASS	SOMATIC;QSS=45;TQSS=1;NT=ref;QSS_NT=45;TQSS_NT=1;SGT=CC->CT;DP=165;MQ=60.00;MQ0=0;ReadPosRankSum=1.99;SNVSB=0.00;SomaticEVS=7.58;ANN=T|intron_variant|MODIFIER|STRN3|ENSG00000196792|transcript|ENST00000357479.9|protein_coding|14/17|c.1889-85G>A||||||;CSQ=T|intron_variant|MODIFIER|STRN3|ENSG00000196792|Transcript|ENST00000357479|protein_coding||14/17|ENST00000357479.9:c.1889-85G>A|||||||||-1||SNV|HGNC|HGNC:15720|YES|5|A1|CCDS41938.1|ENSP00000350071|Q13033||UPI0000F734B1||||||||||||||||||||||||||||||||||	DP:FDP:SDP:SUBDP:AU:CU:GU:TU	36:0:0:0:0,0:36,36:0,0:0,0	129:0:0:0:0,0:124,124:0,0:5,5
+chr14	74798877	.	A	T	.	PASS	SOMATIC;QSS=91;TQSS=1;NT=ref;QSS_NT=91;TQSS_NT=1;SGT=AA->AT;DP=734;MQ=59.99;MQ0=0;ReadPosRankSum=-0.69;SNVSB=0.00;SomaticEVS=9.03;ANN=T|missense_variant|MODERATE|YLPM1|ENSG00000119596|transcript|ENST00000325680.11|protein_coding|5/21|c.3580A>T|p.Asn1194Tyr|3704/7108|3580/6441|1194/2146||;CSQ=T|missense_variant|MODERATE|YLPM1|ENSG00000119596|Transcript|ENST00000325680|protein_coding|5/21||ENST00000325680.11:c.3580A>T|ENSP00000324463.7:p.Asn1194Tyr|3704/7108|3580/6441|1194/2146|N/Y|Aac/Tac|||1||SNV|HGNC|HGNC:17798|YES|5|P2|CCDS45135.1|ENSP00000324463|P49750||UPI00006C1433||deleterious_low_confidence(0.01)|possibly_damaging(0.465)|hmmpanther:PTHR13413&mobidb-lite||||||||||||||||||||||||||||||	DP:FDP:SDP:SUBDP:AU:CU:GU:TU	169:0:0:0:169,170:0,0:0,0:0,0	562:1:0:0:549,552:0,0:0,0:12,12
+chr15	27851344	.	C	G	.	PASS	SOMATIC;QSS=63;TQSS=2;NT=ref;QSS_NT=63;TQSS_NT=2;SGT=CC->CG;DP=327;MQ=59.97;MQ0=0;ReadPosRankSum=-1.03;SNVSB=0.00;SomaticEVS=8.59;ANN=G|intron_variant|MODIFIER|OCA2|ENSG00000104044|transcript|ENST00000354638.7|protein_coding|22/23|c.2338+38G>C||||||;CSQ=G|intron_variant|MODIFIER|OCA2|ENSG00000104044|Transcript|ENST00000354638|protein_coding||22/23|ENST00000354638.7:c.2338+38G>C|||||||rs370987760||-1||SNV|HGNC|HGNC:8101|YES|1|P3|CCDS10020.1|ENSP00000346659|Q04671||UPI000013D158|1|||||||||||||||||||||||||||||||||	DP:FDP:SDP:SUBDP:AU:CU:GU:TU	91:0:0:0:0,0:91,91:0,0:0,0	234:1:0:0:0,1:227,229:4,4:2,2
+chr16	77725565	.	T	C	.	PASS	SOMATIC;QSS=71;TQSS=1;NT=ref;QSS_NT=71;TQSS_NT=1;SGT=TT->CT;DP=646;MQ=60.00;MQ0=0;ReadPosRankSum=1.36;SNVSB=0.00;SomaticEVS=10.20;ANN=C|missense_variant|MODERATE|NUDT7|ENSG00000140876|transcript|ENST00000268533.9|protein_coding|2/4|c.170T>C|p.Phe57Ser|239/1096|170/717|57/238||;CSQ=C|missense_variant|MODERATE|NUDT7|ENSG00000140876|Transcript|ENST00000268533|protein_coding|2/4||ENST00000268533.9:c.170T>C|ENSP00000268533.5:p.Phe57Ser|239/1096|170/717|57/238|F/S|tTc/tCc|||1||SNV|HGNC|HGNC:8054|YES|1|P3|CCDS42195.1|ENSP00000268533|P0C024||UPI000003EFFE||deleterious(0)|possibly_damaging(0.88)|PROSITE_profiles:PS51462&cd03426&hmmpanther:PTHR12992&hmmpanther:PTHR12992:SF0&PROSITE_patterns:PS01293&Pfam_domain:PF00293&Gene3D:3.90.79.10&Superfamily_domains:SSF55811||||||||||||||||||||||||||||||	DP:FDP:SDP:SUBDP:AU:CU:GU:TU	165:0:0:0:0,0:0,0:0,0:165,168	475:1:0:0:2,2:8,9:1,1:463,466
+chr17	16149593	.	A	T	.	PASS	SOMATIC;QSS=64;TQSS=1;NT=ref;QSS_NT=64;TQSS_NT=1;SGT=AA->AT;DP=163;MQ=60.00;MQ0=0;ReadPosRankSum=2.93;SNVSB=0.00;SomaticEVS=12.40;ANN=T|intron_variant|MODIFIER|NCOR1|ENSG00000141027|transcript|ENST00000268712.7|protein_coding|8/45|c.843-76T>A||||||;CSQ=T|intron_variant|MODIFIER|NCOR1|ENSG00000141027|Transcript|ENST00000268712|protein_coding||8/45|ENST00000268712.7:c.843-76T>A|||||||||-1||SNV|HGNC|HGNC:7672|YES|1|P3|CCDS11175.1|ENSP00000268712|O75376|A0A024RD47|UPI000013D7D5|1|||||||||||||||||||||||||||||||||	DP:FDP:SDP:SUBDP:AU:CU:GU:TU	41:0:0:0:41,41:0,0:0,0:0,0	121:1:0:0:112,112:0,0:0,0:8,10
