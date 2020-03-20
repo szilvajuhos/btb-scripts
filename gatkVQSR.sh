@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 GRCH38=/data1/references/igenomes/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta
 REFDIR=/data1/references/annotations/GATK_bundle
 HAPMAP=${REFDIR}/hapmap_3.3.hg38.vcf.gz                             # training with high-confidence TPs
@@ -8,11 +8,13 @@ DBSNP146=${REFDIR}/dbsnp_146.hg38.vcf.gz                            # validation
 LOCALBASE=`basename $1`
 VQSROUT=${LOCALBASE%.vcf*}
 
+CONTAINER=/data1/containers/nfcore-sarek-dev.img
+
 echo "######################################################################"
 echo "                        SNP recalibration"
 echo "######################################################################"
 
-singularity exec /data1/containers/sarek-latest.simg gatk VariantRecalibrator \
+singularity exec ${CONTAINER} gatk VariantRecalibrator \
   -R ${GRCH38} \
   -V $1 \
   --resource:hapmap,known=false,training=true,truth=true,prior=15.0 ${HAPMAP} \
@@ -25,7 +27,7 @@ singularity exec /data1/containers/sarek-latest.simg gatk VariantRecalibrator \
   --tranches-file ${VQSROUT}.VQSR.SNP.tranches \
   --rscript-file ${VQSROUT}.SNP.plots.R      # needs r-ggplot2 conda package
 
-singularity exec /data1/containers/sarek-latest.simg gatk ApplyVQSR \
+singularity exec ${CONTAINER} gatk ApplyVQSR \
   -R ${GRCH38} \
   -V $1 \
   -O ${VQSROUT}.SNP.recalibrated.vcf.gz \
@@ -42,7 +44,7 @@ echo "######################################################################"
 
 MILLSINDELS=${REFDIR}/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz
 
-singularity exec /data1/containers/sarek-latest.simg gatk VariantRecalibrator \
+singularity exec ${CONTAINER} gatk VariantRecalibrator \
   -R ${GRCH38} \
   -V ${VQSROUT}.SNP.recalibrated.vcf.gz \
   --resource:mills,known=false,training=true,truth=true,prior=12.0 ${MILLSINDELS} \
@@ -53,7 +55,7 @@ singularity exec /data1/containers/sarek-latest.simg gatk VariantRecalibrator \
   --tranches-file ${VQSROUT}.VQSR.INDEL.tranches \
   --rscript-file ${VQSROUT}.INDEL.plots.R
 
-singularity exec /data1/containers/sarek-latest.simg gatk ApplyVQSR \
+singularity exec ${CONTAINER} gatk ApplyVQSR \
   -R ${GRCH38} \
   -V ${VQSROUT}.SNP.recalibrated.vcf.gz \
   -O ${VQSROUT}.SNP.INDEL.recalibrated.vcf.gz \
