@@ -33,9 +33,10 @@ kernel and its parameters.
    more realistic high-dimensional problems.
 
 """
-print(__doc__)
+#print(__doc__)
 
 import csv
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn import svm, datasets
@@ -119,7 +120,7 @@ def load_data(data_file_name):
 
 
 # import some data to play with
-data, target, target_names = load_data('test.small.csv')
+data, target, target_names = load_data('test.csv')
 # This "dictifaction" is done in the original scikit-learn by the Bunch class ( find site-packages/ -name "*.py"| xargs grep "class Bunch" )
 calls = {'data':data, 'target':target, 'target_names':target_names}
 # Take the first two features. We could avoid this by using a two-dim dataset
@@ -128,7 +129,7 @@ calls = {'data':data, 'target':target, 'target_names':target_names}
 
 # "data" is a numpy.ndarray that has funny properties
 # by this [:, :2] we are taking the first two columns
-X = data[:, :23]
+X = data[:, :22]
 y = target
 
 # we create an instance of SVM and fit out data. We do not scale our
@@ -142,31 +143,14 @@ models = (svm.SVC(kernel='linear', C=C),
 print("done.\nFitting...")
 models = (clf.fit(X, y) for clf in models)
 
-print("done.\nPlotting: creating mesh...")
-# title for the plots
-titles = ('SVC with linear kernel',
-          'LinearSVC (linear kernel)',
-          'SVC with RBF kernel',
-          'SVC with polynomial (degree 3) kernel')
+print("done.\nReading data to be classified...")
+blind_data, blind_target, blind_target_names = load_data('blind.csv')
+print("done.\nPrediction by different models...")
+for call in blind_data:
+  for clf in models:
+    print(clf.predict([call]))
 
-# Set-up 2x2 grid for plotting.
-fig, sub = plt.subplots(2, 2)
-plt.subplots_adjust(wspace=0.4, hspace=0.4)
 
-X0, X1 = X[:, 0], X[:, 1]
-xx, yy = make_meshgrid(X0, X1)
-print("done.\nCreating contours...")
 
-for clf, title, ax in zip(models, titles, sub.flatten()):
-    plot_contours(ax, clf, xx, yy,
-                  cmap=plt.cm.coolwarm, alpha=0.8)
-    ax.scatter(X0, X1, c=y, cmap=plt.cm.coolwarm, s=20, edgecolors='k')
-    ax.set_xlim(xx.min(), xx.max())
-    ax.set_ylim(yy.min(), yy.max())
-    ax.set_xlabel('Sepal length')
-    ax.set_ylabel('Sepal width')
-    ax.set_xticks(())
-    ax.set_yticks(())
-    ax.set_title(title)
+print("done.\n")
 
-plt.show()
