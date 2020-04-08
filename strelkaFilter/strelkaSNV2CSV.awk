@@ -1,5 +1,6 @@
 BEGIN{print "QSS,QSS_TT,DP,MQ,ReadPosRankSum,STVSB,SomaticEVS,TDP,TFDP,TSDP,TSUBDP,TAU,TCU,TGU,TTU,TDP,TFDP,TSDP,TSUBDP,TAU,TCU,TGU,TTU"}
-$7~/EVS/ {
+$7~/PASS/ {
+#!/^#/{
   # get values from the INFO field
   split($8,info,";")
   # we want to get         QSS, QSS_NT, DP, MQ, ReadPosRankSum, SNVSB, SomaticEVS from the info field
