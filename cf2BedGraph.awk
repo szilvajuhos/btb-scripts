@@ -1,6 +1,6 @@
 
 # massage input file like
-# awk '!/Chrom/{print}' P13714_154.pileup_BAF.txt| sort -V -k1,1 -k2,2n 
+# awk '!/Chrom/{print}' SAMPLE.pileup_BAF.txt| sort -V -k1,1 -k2,2n 
 
 BEGIN{
   getline;  # have to start with getline to get the FILENAME
