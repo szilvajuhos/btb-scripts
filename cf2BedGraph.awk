@@ -16,7 +16,7 @@ BEGIN{
 #
 # and we want to have
 #
-# track type=bedGraph name="P13714_154.pileup_BAF.txt BAF" description="P13714_154.pileup_BAF.txt BAF" color=100,100,100
+# track type=bedGraph name="Sample Pileup BAF" description="Sample Pileup BAF" color=100,100,100
 # 1   10181   10230 0.0495495
 # 1   10231   10256 0.075
 #
