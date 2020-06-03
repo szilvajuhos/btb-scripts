@@ -9,7 +9,7 @@ from numpy import arange
 fig = plt.figure(figsize=(15,7))
 
 ax1 = plt.subplot(1, 3, 1)
-cm = matplotlib.cm.Blues
+cm = matplotlib.cm.bwr
 X = np.random.random([6,6])
 pmat = pdist(X, "euclidean")
 linkmat = linkage(pmat)
@@ -25,12 +25,12 @@ y0,y1 = ax1.get_ylim()
 #cb.ax.set_visible(False)
 
 chr1 = plt.subplot(1, 3, 2)
-Y = np.random.random([6,6])
+Y = np.random.random([6,26])
 
 plt.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False) # labels along the bottom edge are off
 plt.tick_params(axis='y', which='both', left=False, right=False, labelleft=False) # labels along the left edge are off
 #plt.xticks(arange(0.5, 7.5, 1))
-plt.pcolor(Y)
+plt.pcolor(Y,cmap='bwr')
 # set a colorbar
 #cb = plt.colorbar(ax=chr1)
 # and disable
@@ -42,9 +42,8 @@ chr1.set_yticklabels([])
 chr2 = plt.subplot(1, 3, 3)
 plt.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False) # labels along the bottom edge are off
 plt.tick_params(axis='y', which='both', left=False, right=False, labelleft=False) # labels along the left edge are off
-Y = np.random.random([16,16])
-#plt.xticks(arange(0.5, 7.5, 1))
-plt.pcolor(Y)
+Y = np.random.random([6,16])
+plt.pcolor(Y,cmap='bwr')
 # switch off labels
 chr2.set_xticklabels([])
 chr2.set_yticklabels([])
