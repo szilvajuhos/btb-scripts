@@ -9,10 +9,20 @@ from numpy import arange
 fig = plt.figure(figsize=(15,7))
 
 ax1 = plt.subplot(1, 3, 1)
+# set colormap
 cm = matplotlib.cm.bwr
-X = np.random.random([6,6])
+
+# generate data
+# X = np.random.random([6,6])
+X = np.genfromtxt('chr1.csv',delimiter=',')
+# get pairwise distance matrix
 pmat = pdist(X, "euclidean")
+# do hiearchical clustering
 linkmat = linkage(pmat)
+
+
+
+
 plt.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False) # labels along the bottom edge are off
 plt.tick_params(axis='y', which='both', left=False, right=False, labelleft=False) # labels along the left edge are off
 dendrogram(linkmat,orientation='left')
@@ -25,7 +35,8 @@ y0,y1 = ax1.get_ylim()
 #cb.ax.set_visible(False)
 
 chr1 = plt.subplot(1, 3, 2)
-Y = np.random.random([6,26])
+Y = X
+#Y = np.random.random([6,26])
 
 plt.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False) # labels along the bottom edge are off
 plt.tick_params(axis='y', which='both', left=False, right=False, labelleft=False) # labels along the left edge are off
