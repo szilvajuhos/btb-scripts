@@ -21,7 +21,6 @@ from intervaltree import Interval, IntervalTree
 import csv
 
 t = IntervalTree()
-
 with open('chr3.bed', 'r') as f:
     reader = csv.reader(f, dialect='excel', delimiter=' ')
     for row in reader:
@@ -32,7 +31,7 @@ with open('chr3.bed', 'r') as f:
             end = start + 1
         t.addi( start, end, data)
 
-
+line = ""
 for i in range(0,198295559,1000000):    # size of chr3
     value = 0       # default value is zero
     if len(t[i]) != 0:
@@ -40,4 +39,6 @@ for i in range(0,198295559,1000000):    # size of chr3
         for interval_obj in t[i]:
             data.append(interval_obj.data)
         value = max(data)
-    print(i,t[i],value)
+    line = line + str(value) + ","
+line = line + "0"
+print(line)
