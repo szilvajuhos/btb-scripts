@@ -15,6 +15,17 @@ cm = matplotlib.cm.bwr
 # generate data
 # X = np.random.random([6,6])
 X = np.genfromtxt('chr1.csv',delimiter=',')
+#
+# we are going to have a CSV file for each chromosome with sample names like
+#
+# Sample1,0,10,2,0,3,0,4,0
+# Sample2,0,10,2,0,3,0,4,0
+# Sample3,0,10,2,0,3,0,4,0
+#
+# So we have to delete the first column like
+X = np.delete(X,0,1)
+X = np.log(X)
+
 # get pairwise distance matrix
 pmat = pdist(X, "euclidean")
 # do hiearchical clustering
