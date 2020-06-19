@@ -12,7 +12,7 @@ class IntervalPrinter:
         self.t = IntervalTree()
         self.step = step
         with open(bed, 'r') as f:
-            reader = csv.reader(f, delimiter=' ')
+            reader = csv.reader(f, delimiter='\t')
             for row in reader:
                 if row[0] == chrom:
                     start = int(row[1])
@@ -26,7 +26,7 @@ class IntervalPrinter:
         with open(faidx,'r') as idx:
             reader = csv.reader(idx,delimiter='\t')
             for row in reader:
-                if row[0] == self.chrom:
+                if row[0] == str(self.chrom):
                     return int(row[1])
 
     def printLine(self):
@@ -38,6 +38,8 @@ class IntervalPrinter:
                 for interval_obj in self.t[i]:
                     data.append(interval_obj.data)
                 value = max(data)
+                if value <= 0.0:
+                    value = 0.000001
             line = line + str(value) + ","
         line = line + "1"
         print(line)
