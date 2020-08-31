@@ -1,4 +1,7 @@
-#!/bin/bash -euo pipefail
+#!/bin/bash
+set -e
+set -o pipefail
+set -u
 
 nextflow -log ${1%.tsv}.sentieon.log run nf-core/sarek -r dev -profile munin --tools TNscope,merge --sentieon --input $1 
 
