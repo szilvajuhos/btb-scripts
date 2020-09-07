@@ -1,0 +1,23 @@
+[[annotation]]
+file="/data1/references/pathfindr/SweGen_hg38_stratified.SWAF.vcf.gz"
+fields = [ "SWAF"]
+ops=["self"]
+names=["SWAF"]
+
+[[annotation]]
+file="/data1/references/pathfindr/hapmap_3.3_grch38_pop_stratified_af.HMAF.vcf.gz"
+fields=["HMAF"]
+ops=["self"]
+names=["HMAF"]
+
+[[annotation]]
+file="/data1/references/pathfindr/00-All.dbsnp_151.hg38.CAF.TOPMED.alternate.allele.freq.vcf.gz"
+fields = [ "CAF", "TOPMED","ID"]
+ops=["self", "self","self"]
+names=["CAF", "TOPMED","dbSNP"]
+
+[[postannotation]]
+name="ID"
+fields=["dbSNP"]
+op="setid"
+type="String"
