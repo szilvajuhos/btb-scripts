@@ -77,8 +77,9 @@ class MakeHeat:
         for c in self.chromList:
             cnvData = np.genfromtxt('chr'+str(c)+'.csv',delimiter=',')
             cnvData = np.delete(cnvData,0,1)    # delete first column
+            #cnvData = np.add(cnvData,3.00)  # remove 2 to normalize to zero
             #cnvData = np.log(cnvData)
-            cnvData = np.subtract(cnvData,2.00)  # remove 2 to normalize to zero
+            #cnvData = np.subtract(cnvData,2.00)  # remove 2 to normalize to zero
             chroms['chr'+str(c)] = cnvData
         return chroms
     
@@ -93,8 +94,14 @@ class MakeHeat:
                 minR = np.min(self.chroms[key])
             if np.max(self.chroms[key]) > maxR:
                 maxR = np.max(self.chroms[key])
-            
-        return(-2,2)
+        
+        print(minR,maxR)
+        if abs(minR) > maxR:
+            maxR = abs(minR)
+        else:
+            minR = -abs(maxR)
+        print(minR,maxR)
+        return(0,4)
         return(minR,maxR)
 
 @click.command(context_settings = dict( help_option_names = ['-h', '--help'] ))

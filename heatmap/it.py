@@ -11,6 +11,7 @@ class IntervalPrinter:
         #print("Chromosome "+self.chrom+" length is "+str(self.chrLength))
         self.t = IntervalTree()
         self.step = step
+
         if(file_type == 'bedgraph'):
             with open(infile, 'r') as f:
                 reader = csv.reader(f, delimiter='\t')
@@ -22,6 +23,33 @@ class IntervalPrinter:
                         if start == end:
                             end = start + 1
                         self.t.addi( start, end, data)
+        if(file_type == 'cnvs'):
+            with open(infile, 'r') as f:
+                reader = csv.reader(f, delimiter='\t')
+                chrom = chrom.replace("chr","")
+                for row in reader:
+                    if row[0] == chrom:
+                        start = int(row[1])
+                        end = int(row[2])
+                        data = float(row[3]) 
+                        if start == end:
+                            end = start + 1
+                        self.t.addi( start, end, data)
+        if(file_type == 'ratio'):
+            with open(infile, 'r') as f:
+                reader = csv.reader(f, delimiter='\t')
+                start = 0   # beginning of the chromosome
+                chrom = chrom.replace("chr","")
+                for row in reader:
+                    if row[0] == chrom:
+                        end = int(row[1])
+                        #data = float(row[2])   # ratio value
+                        data = float(row[4])    # copy number
+                        if start == end:
+                            end = start + 1
+                        self.t.addi( start, end, data)
+                        # update
+                        start = end
 
     def _getChrLength(self,faidx):
         with open(faidx,'r') as idx:
@@ -33,7 +61,7 @@ class IntervalPrinter:
     def printLine(self):
         line = ""
         for i in range(0, self.chrLength, self.step):
-            value = 2       # default value to one
+            value = 2       # default value 
             if len(self.t[i]) != 0:
                 data = []
                 for interval_obj in self.t[i]:
