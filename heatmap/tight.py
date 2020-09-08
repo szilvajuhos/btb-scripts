@@ -31,7 +31,6 @@ class MakeHeat:
 
         # generate data
         X = self.chroms['chr1']
-#        X = np.log(X)
         plt.tick_params(axis='x', which='both', bottom=False, top=True, labelbottom=True) 
         plt.tick_params(axis='y', which='both', left=True, right=False, labelleft=True)
         chr1.set_yticks(np.arange(X.shape[0]))
@@ -56,34 +55,7 @@ class MakeHeat:
             # switch off labels
             chrPlot.set_xticklabels([])
             chrPlot.set_yticklabels([])
-#
-#        ######### X,Y ##########
-#        chrX = plt.subplot(1, 24, 23,title='X')
-#        X = np.genfromtxt('chrX.csv',delimiter=',')
-#        X = np.delete(X,0,1)
-#        X = np.log(X)
-#        X = X / X.max()
-#
-#        plt.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False) # labels along the bottom edge are off
-#        plt.tick_params(axis='y', which='both', left=False, right=False, labelleft=False) # labels along the left edge are off
-#        plt.pcolor(X,cmap='bwr')
-#        # switch off labels
-#        chrPlot.set_xticklabels([])
-#        chrPlot.set_yticklabels([])
-#
-#        chrY = plt.subplot(1, 24, 24,title='Y')
-#        X = np.genfromtxt('chrY.csv',delimiter=',')
-#        X = np.delete(X,0,1)
-#        X = np.log(X)
-#        X = X / X.max()
-#
-#        plt.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False) # labels along the bottom edge are off
-#        plt.tick_params(axis='y', which='both', left=False, right=False, labelleft=False) # labels along the left edge are off
-#        plt.pcolor(X,cmap='bwr')
-#        # switch off labels
-#        chrPlot.set_xticklabels([])
-#        chrPlot.set_yticklabels([])
-#
+
         plt.colorbar()
         plt.subplots_adjust(wspace=0.0, hspace=0.0)
         plt.savefig("heatmap.png")
@@ -104,9 +76,9 @@ class MakeHeat:
         chroms = {}
         for c in self.chromList:
             cnvData = np.genfromtxt('chr'+str(c)+'.csv',delimiter=',')
-            cnvData = np.delete(cnvData,0,1)
-            cnvData = np.log(cnvData)
-            cnvData = np.subtract(cnvData,0.8)
+            cnvData = np.delete(cnvData,0,1)    # delete first column
+            #cnvData = np.log(cnvData)
+            cnvData = np.subtract(cnvData,2.00)  # remove 2 to normalize to zero
             chroms['chr'+str(c)] = cnvData
         return chroms
     
@@ -123,7 +95,7 @@ class MakeHeat:
                 maxR = np.max(self.chroms[key])
             
         return(-2,2)
-        #return(minR,maxR)
+        return(minR,maxR)
 
 @click.command(context_settings = dict( help_option_names = ['-h', '--help'] ))
 
