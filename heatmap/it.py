@@ -4,23 +4,24 @@ from intervaltree import Interval, IntervalTree
 
 
 class IntervalPrinter:
-    def __init__(self,bed,chrom,faidx,step):
+    def __init__(self,file_type,infile,chrom,faidx,step):
         self.chrom = chrom
         # calculate chromosome length from FASTA index:
         self.chrLength = self._getChrLength(faidx)
         #print("Chromosome "+self.chrom+" length is "+str(self.chrLength))
         self.t = IntervalTree()
         self.step = step
-        with open(bed, 'r') as f:
-            reader = csv.reader(f, delimiter='\t')
-            for row in reader:
-                if row[0] == chrom:
-                    start = int(row[1])
-                    end = int(row[2])
-                    data = float(row[3]) 
-                    if start == end:
-                        end = start + 1
-                    self.t.addi( start, end, data)
+        if(file_type == 'bedgraph'):
+            with open(infile, 'r') as f:
+                reader = csv.reader(f, delimiter='\t')
+                for row in reader:
+                    if row[0] == chrom:
+                        start = int(row[1])
+                        end = int(row[2])
+                        data = float(row[3]) 
+                        if start == end:
+                            end = start + 1
+                        self.t.addi( start, end, data)
 
     def _getChrLength(self,faidx):
         with open(faidx,'r') as idx:
@@ -46,14 +47,18 @@ class IntervalPrinter:
 
 
 @click.command(context_settings = dict( help_option_names = ['-h', '--help'] ))
-@click.option('--bed',      '-b', type=str, help='BED file to process', required=True)
-@click.option('--chrom',    '-c', type=str, help='The chromosome in the BED file to process', required=True)
-@click.option('--faidx',    '-i', type=str, help='FASTA index file to get chromosome lengths', required=True)
-@click.option('--step',     '-s', type=int, help='stepsize', required=False, default=1000000)
+@click.option('--file-type',    '-t',
+              type=click.Choice(['bedgraph', 'cnvs', 'ratio', 'cnp'], case_sensitive=False),
+              help='Input file type',
+              required=True)
+@click.option('--infile',       '-f', type=str, help='Input file', required=True)
+@click.option('--chrom',        '-c', type=str, help='The chromosome in the BED file to process', required=True)
+@click.option('--faidx',        '-i', type=str, help='FASTA index file to get chromosome lengths', required=True)
+@click.option('--step',         '-s', type=int, help='stepsize', required=False, default=1000000)
 
 
-def makeCSV(bed,chrom,faidx,step):
-    csvMaker = IntervalPrinter(bed,chrom,faidx,step)
+def makeCSV(file_type,infile,chrom,faidx,step):
+    csvMaker = IntervalPrinter(file_type,infile,chrom,faidx,step)
     csvMaker.printLine()
 
 if __name__ == "__main__":

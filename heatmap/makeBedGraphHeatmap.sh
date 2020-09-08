@@ -9,7 +9,7 @@ for f in `cat current.samples`; do
 		CHROM=chr${c}; 
 		echo -n $f",">>${CHROM}.csv; 
 		# making new data
-		python it.py -b BedGraphs/${f}.hg38.pileup.gz_ratio.BedGraph -c $CHROM -i ~/genome/Homo_sapiens_assembly38.fasta.fai >> ${CHROM}.csv;
+		python it.py -t bedgraph -f BedGraphs/${f}.hg38.pileup.gz_ratio.BedGraph -c $CHROM -i ~/genome/Homo_sapiens_assembly38.fasta.fai >> ${CHROM}.csv;
 	done; 
 done
 
