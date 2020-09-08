@@ -32,14 +32,14 @@ class IntervalPrinter:
     def printLine(self):
         line = ""
         for i in range(0, self.chrLength, self.step):
-            value = 1       # default value to one
+            value = 2       # default value to one
             if len(self.t[i]) != 0:
                 data = []
                 for interval_obj in self.t[i]:
                     data.append(interval_obj.data)
                 value = max(data)
-                if value <= 0.0:
-                    value = 0.000001
+#                if value <= 0.0:
+#                    value = 2
             line = line + str(value) + ","
         line = line + "1"
         print(line)
