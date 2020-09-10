@@ -20,7 +20,7 @@ class ExonCoords:
     def print_properties(self):
         print("#########################################")
         print("coordinates :", self.chromosome + ":" + str(self.exons.begin()) +"-"+ str(self.exons.end()))
-        print("strand      :", self.gene_name)
+        print("gene        :", self.gene_name)
         print("strand      :", self._strand)
         print("breakpoint  :", self._breakpoint)
         print("exons       :", self._exons)
@@ -90,17 +90,38 @@ class SV_Maker:
             if gene_ends.at(bp):
                 gene.breakpoint = bp
 
+    def get_left_part(self,gene:ExonCoords):
+            # |-->---!->-->-->--|
+            # xxxxxxxx
+            tr_exons = gene.exons
+            tr_exons = tr_exons.overlap( gene.exons.begin(), gene.breakpoint)
+            tr_exons.add(Interval(gene.breakpoint-1,gene.breakpoint))
+            return tr_exons
+
+    def get_right_part(self,gene:ExonCoords):
+            # |--<---!-<--<--<--|
+            #        xxxxxxxxxxxx
+            tr_exons = gene.exons
+            tr_exons = tr_exons.overlap( gene.breakpoint, gene.exons.end()) 
+            tr_exons.add(Interval(gene.breakpoint,gene.breakpoint+1))
+            return tr_exons
+
     def getFusedPart(self, gene:ExonCoords, prime:int ) -> ExonCoords:
         """
         Breaks the gene coordinates at the breakpoint
         and returs with the left or right truncated part depending on strand
         """
-        tr_exons = gene.exons
+        tr_exons = None
         if prime == 5:
             if gene.strand > 0:
-                tr_exons = tr_exons.overlap( gene.exons.begin(), gene.breakpoint)
+                tr_exons = self.get_left_part(gene)
             else:
-                tr_exons = tr_exons.overlap( gene.breakpoint, gene.exons.begin()) 
+                tr_exons = self.get_right_part(gene)
+        else:   # assuming prime 3 - the other way around
+            if gene.strand > 0:
+                tr_exons = self.get_right_part(gene)
+            else:
+                tr_exons = self.get_left_part(gene)
         return ExonCoords(gene.chromosome, gene.strand, gene.breakpoint, gene.gene_name, tr_exons)
 
     def fuse_genes(self):
@@ -153,7 +174,7 @@ def get_CDS_coords(ENS_ID):
             end = exon['end']
             exon_intervals.add(Interval(start,end))
     exon_intervals.merge_overlaps()
-    return (chromosome, obj['strand'], 0, "", IntervalTree(sorted(exon_intervals.items())) )
+    return (chromosome, obj['strand'], 0, obj['display_name'], IntervalTree(sorted(exon_intervals.items())) )
 
 
 # This is the surrogate for main(): everything happens here
@@ -172,12 +193,9 @@ def print_SV(vcf):
             snpEff_ann = sv_call[7].split("|")
             # Munching through the "END=140789598;SVTYPE=DUP;SVLEN=1932669;CIPOS=0,1;CIEND=0,1;HOMLEN=1;HOMSEQ=G;SOMATIC;SOMATICSCORE=85;ANN=<DUP:TANDEM>" string to get 140789598
             end = int(snpEff_ann[0].split(";")[0].replace("END=",""))
-            gene_names = snpEff_ann[3].split("&")
             ENS_IDs = snpEff_ann[4].split("&")
             prime_5 = ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[0]))
-            prime_5.gene_name = gene_names[0]
             prime_3 = ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[1]))
-            prime_3.gene_name = gene_names[1]
             fusion = SV_Maker(prime_5,prime_3, start, end)
             fusion.print_properties()
             fusion.fuse_genes()
