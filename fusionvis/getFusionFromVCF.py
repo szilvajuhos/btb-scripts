@@ -61,7 +61,6 @@ class ExonCoords:
     def exons(self,exons):
         self._exons = exons
 
-
 class SV_Maker:
     """
     Joins coordinates of exons for two genes
@@ -106,6 +105,13 @@ class SV_Maker:
             tr_exons.add(Interval(gene.breakpoint,gene.breakpoint+1))
             return tr_exons
 
+    def print_as_bed(self,exs):
+        chromosome = self.prime5.chromosome
+        for e in sorted(exs):
+            print(chromosome + "\t" + str(e.begin) + "\t" + str(e.end))
+            
+
+
     def getFusedPart(self, gene:ExonCoords, prime:int ) -> ExonCoords:
         """
         Breaks the gene coordinates at the breakpoint
@@ -128,13 +134,43 @@ class SV_Maker:
         # first we have to get parts by strand
         # - strand means we want to have the left part from the breakpoint, 
         # + strand means we want to have the right part
-        print(type(self.prime5))
         prime5part = self.getFusedPart(self.prime5,5)
         prime3part = self.getFusedPart(self.prime3,3)
         print("-------------Truncated parts---------------")
         prime5part.print_properties()
         prime3part.print_properties()
         print("-------------------------------------------")
+        # now move the 3' part to the 5' part
+        p5borders = (prime5part.exons.begin(), prime5part.exons.end())
+        p3borders = (prime3part.exons.begin(), prime3part.exons.end())
+        print(p5borders)    
+        print(p3borders)    
+        # |------5------|
+        #                   |------3------|
+        # |------5------|
+        #           |------3------|
+        #
+        #                   |------5------|
+        #           |------3------|
+        #                   |------5------|
+        # |------3------|
+        # shift = (5'start - 3'start) 
+        # 3'start = 3'start + shift
+        shift = 0
+        if prime5part.strand > 0:
+            shift = prime5part.exons.begin() - prime3part.exons.begin() + 1
+        else:
+            shift = prime5part.exons.begin() - prime3part.exons.end()
+        print(shift)
+        # we have to shift 3' only
+        shifted3p = IntervalTree()
+        for iv in prime3part.exons:
+            shifted3p.add(Interval(iv.begin+shift, iv.end+shift))
+        print(shifted3p)
+        # join the two intervals:
+        fused_exons = shifted3p | prime5part.exons
+        print("Fused stuff:")
+        self.print_as_bed(fused_exons)
 
     def print_properties(self):
         print("5' gene:")
@@ -151,6 +187,8 @@ class SV_Maker:
         start = exons.begin()
         end = exons.end()
         print("gene coords:", self.prime3.chromosome + ":" + str(start) + "-" + str(end) )
+
+
 
 def get_CDS_coords(ENS_ID):
     # look docs at https://rest.ensembl.org/
