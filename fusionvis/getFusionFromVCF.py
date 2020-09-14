@@ -78,9 +78,6 @@ class SV_Maker:
         self.assign_breakpoint(start)
         self.assign_breakpoint(end)
 
-        print("prime 5 breakpoint:", self.prime5.breakpoint)
-        print("prime 3 breakpoint:", self.prime3.breakpoint)
-    
     def assign_breakpoint(self,bp):
         for gene in [self.prime5, self.prime3]:
             gene_coords = gene.exons
@@ -110,8 +107,6 @@ class SV_Maker:
         for e in sorted(exs):
             print(chromosome + "\t" + str(e.begin) + "\t" + str(e.end))
             
-
-
     def getFusedPart(self, gene:ExonCoords, prime:int ) -> ExonCoords:
         """
         Breaks the gene coordinates at the breakpoint
@@ -136,15 +131,9 @@ class SV_Maker:
         # + strand means we want to have the right part
         prime5part = self.getFusedPart(self.prime5,5)
         prime3part = self.getFusedPart(self.prime3,3)
-        print("-------------Truncated parts---------------")
-        prime5part.print_properties()
-        prime3part.print_properties()
-        print("-------------------------------------------")
         # now move the 3' part to the 5' part
         p5borders = (prime5part.exons.begin(), prime5part.exons.end())
         p3borders = (prime3part.exons.begin(), prime3part.exons.end())
-        print(p5borders)    
-        print(p3borders)    
         # |------5------|
         #                   |------3------|
         # |------5------|
@@ -161,16 +150,19 @@ class SV_Maker:
             shift = prime5part.exons.begin() - prime3part.exons.begin() + 1
         else:
             shift = prime5part.exons.begin() - prime3part.exons.end()
-        print(shift)
         # we have to shift 3' only
         shifted3p = IntervalTree()
         for iv in prime3part.exons:
             shifted3p.add(Interval(iv.begin+shift, iv.end+shift))
-        print(shifted3p)
         # join the two intervals:
         fused_exons = shifted3p | prime5part.exons
-        print("Fused stuff:")
-        self.print_as_bed(fused_exons)
+        # and now shift down the stuff to 0 for SVG
+        based0 = IntervalTree()
+        drift0 = fused_exons.begin()
+        for iv in fused_exons:
+            based0.add(Interval(iv.begin-drift0, iv.end-drift0))
+        # actually it would be better to return with a tuple of two IntervalTrees()
+        return based0
 
     def print_properties(self):
         print("5' gene:")
@@ -235,7 +227,6 @@ def print_SV(vcf):
             prime_5 = ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[0]))
             prime_3 = ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[1]))
             fusion = SV_Maker(prime_5,prime_3, start, end)
-            fusion.print_properties()
             fusion.fuse_genes()
 
 if __name__ == "__main__":
