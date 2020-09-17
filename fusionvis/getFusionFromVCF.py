@@ -4,6 +4,7 @@ from intervaltree import Interval, IntervalTree
 import click
 import svgwrite
 from svgwrite import cm, mm, rgb
+import re
 
 server = "https://rest.ensembl.org"
 
@@ -121,7 +122,7 @@ class SV_Maker:
             else:
                 tr_exons = self.get_right_part(gene)
         else:   # assuming prime 3 - the other way around
-            if gene.strand > 0:
+            if gene.strand < 0:
                 tr_exons = self.get_right_part(gene)
             else:
                 tr_exons = self.get_left_part(gene)
@@ -218,27 +219,45 @@ def get_CDS_coords(ENS_ID):
 @click.option('--svg',      '-s', type=str, help='The output SVG file name', required=True)
 
 def print_SV(vcf, svg):
+    # comment regexp
+    comment_re = re.compile("^#.*")
+    # further regexps to dig out fusions 
+    fusion_re = re.compile(".*gene_fusion.*")
+    tandem_re = re.compile(".*DUP\:TANDEM.*")
+    transloc_re = re.compile(".*MantaBND.*")
+    # we are dealing with PASS only
+    filter_re = re.compile(".*PASS.*")
+
+    # count of pictures (as there can be more)
+    pic_count = 0
     # read the VCF file:
     vcf_file = open(vcf,'r')
     for line in vcf_file:
-        line = line.rstrip()
-        sv_call = line.split("\t")
-        if sv_call[4] == "<DUP:TANDEM>":
-            start = int(sv_call[1])  # column 2 is the SV starting point in the call - just we do not know yet the name of the gene
-            snpEff_ann = sv_call[7].split("|")
-            # Munching through the "END=140789598;SVTYPE=DUP;SVLEN=1932669;CIPOS=0,1;CIEND=0,1;HOMLEN=1;HOMSEQ=G;SOMATIC;SOMATICSCORE=85;ANN=<DUP:TANDEM>" string to get 140789598
-            end = int(snpEff_ann[0].split(";")[0].replace("END=",""))
-            ENS_IDs = snpEff_ann[4].split("&")
-            prime_5 = ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[0]))
-            prime_3 = ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[1]))
-            fusion = SV_Maker(prime_5,prime_3, start, end)
-            makeSVG(fusion.fuse_genes(), svg)
-            #makeSVG((IntervalTree([Interval(2900,3000),Interval(2700,2800),Interval(1500,1600)]),IntervalTree([Interval(0,100),Interval(200,300),Interval(1400,1500)])), svg)
-            #makeSVG((IntervalTree([Interval(0,100),Interval(200,300),Interval(1400,1500)]),IntervalTree([Interval(1500,1600),Interval(2700,2800),Interval(2900,3000)])), svg)
+        # it is PASS, has the annotation "gene_fusion" and certainly not a comment
+        if filter_re.match(line) and fusion_re.match(line) and not comment_re.match(line):
+            line = line.rstrip()
+            sv_call = line.split("\t")
+            # process tandem duplications
+            if tandem_re.match(line):
+                print("processing tandem duplication",sv_call[2])
+                start = int(sv_call[1])  # column 2 is the SV starting point in the call - just we do not know yet the name of the gene
+                snpEff_ann = sv_call[7].split("|")
+                # Munching through the "END=140789598;SVTYPE=DUP;SVLEN=1932669;CIPOS=0,1;CIEND=0,1;HOMLEN=1;HOMSEQ=G;SOMATIC;SOMATICSCORE=85;ANN=<DUP:TANDEM>" string to get 140789598
+                end = int(snpEff_ann[0].split(";")[0].replace("END=",""))
+                ENS_IDs = snpEff_ann[4].split("&")
+                prime_5 = ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[0]))
+                prime_3 = ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[1]))
+                fusion = SV_Maker(prime_5,prime_3, start, end)
+                pic_count = makeSVG(fusion.fuse_genes(), svg, pic_count)
+                #makeSVG((IntervalTree([Interval(2900,3000),Interval(2700,2800),Interval(1500,1600)]),IntervalTree([Interval(0,100),Interval(200,300),Interval(1400,1500)])), svg)
+                #makeSVG((IntervalTree([Interval(0,100),Interval(200,300),Interval(1400,1500)]),IntervalTree([Interval(1500,1600),Interval(2700,2800),Interval(2900,3000)])), svg)
+            elif transloc_re.match(line): # usual translocations
+                print("processing translocation", sv_call[2])
 
-def makeSVG(fex, svg):
+def makeSVG(fex, svg, pic_count):
     w, h = '100%', '100%'
-    dwg = svgwrite.Drawing(filename=svg, size=(w, h), debug=True)
+    outfile = str(pic_count)+"_"+svg
+    dwg = svgwrite.Drawing(filename=outfile, size=(w, h), debug=True)
     dwg.add(dwg.rect(insert=(0,0), size=(w, h), fill='white', stroke='black'))
     shapes = dwg.add(dwg.g(id='shapes', fill='red'))
     shapes = shape_intervals(dwg, shapes, fex[0],'blue')
@@ -246,7 +265,8 @@ def makeSVG(fex, svg):
     shapes.add(dwg.rect(insert=(fex[0].begin()/100*mm,8*mm), size=(int(fex[0].begin()-fex[0].end())/100*mm,2*mm), fill='blue',stroke_width=0) )
     shapes.add(dwg.rect(insert=(0,8*mm), size=((fex[1].end())/100*mm,2*mm), fill='red',stroke='red') )
     dwg.save()
-    print("Fusion picture is at",svg)
+    print("Fusion picture is at",outfile)
+    return pic_count + 1
 
 def shape_intervals(dwg, shapes, itv, color):
     height = 2*cm;
