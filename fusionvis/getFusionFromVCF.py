@@ -8,6 +8,52 @@ import re
 
 server = "https://rest.ensembl.org"
 
+class SnpEffParser:
+    """
+        We are processing an snpEff annotation entry (not a VCF line, but the ANN= stuff)
+        and returning with a list of dictionaries
+    """
+    def __init__(self):
+        self._ann_list = list() # list of annotations 
+        self._ann_keys = list()
+
+    @property
+    def ann_keys(self):
+        return self._ann_keys
+
+    @property
+    def ann_list(self):
+        return self._ann_list
+
+    def add_ann_list(seld,ann:dict):
+        self._ann_list.append(ann)
+
+    def add_ann_keys(self,ann_line:str):
+        """
+        Parsing the ##INFO=<ID=ANN line
+        """
+        entry_list = ann_line.split("'")[1]
+        entries = entry_list.split("|")
+        for item in entries:
+            self._ann_keys.append(item.strip())
+
+    def parse_se_ann(self,line,fusion_re):
+        """
+        Annotation entries are delimited by commas, process each entry, and add to a list if contains gene_fusion
+        """
+        ann_dict = {}
+        entries = line.split("ANN=")[1]
+        entries = entries.split(",")
+        for tr_ann in entries:  # get the transcript items
+            if fusion_re.match(tr_ann):
+                # chop up values into a list
+                ann_list = tr_ann.split("|")
+                # add values into a dict
+                for i in range(0,len(self.ann_keys)):
+                    ann_dict[self.ann_keys[i]] = ann_list[i]
+                # add dict to collection (list)
+                self._ann_list.append(ann_dict)
+
 class ExonCoords:
     def __init__(self,chromosome, strand, breakpoint, gene_name, exons:IntervalTree):
         self.chromosome = chromosome
@@ -19,6 +65,10 @@ class ExonCoords:
     @classmethod 
     def fromTuple(cls, a_tuple):
         return cls( a_tuple[0], a_tuple[1], a_tuple[2], a_tuple[3], a_tuple[4] )
+
+    @classmethod 
+    def empty(cls):
+        return cls("", 0, -1, "", IntervalTree() )
 
     def print_properties(self):
         print("#########################################")
@@ -64,10 +114,17 @@ class ExonCoords:
     def exons(self,exons):
         self._exons = exons
 
+    def begin(self):
+        return self.exons.begin()
+
 class SV_Maker:
     """
     Joins coordinates of exons for two genes
     """
+    # directions from the breakpoint
+    DIR_LEFT = True
+    DIR_RIGHT = False
+
     def __init__(self,p5,p3, start, end):
         """
         """
@@ -110,10 +167,10 @@ class SV_Maker:
         for e in sorted(exs):
             print(chromosome + "\t" + str(e.begin) + "\t" + str(e.end))
             
-    def getFusedPart(self, gene:ExonCoords, prime:int ) -> ExonCoords:
+    def getFusedPart(self, gene:ExonCoords, direction ) -> ExonCoords:
         """
         Breaks the gene coordinates at the breakpoint
-        and returs with the left or right truncated part depending on strand
+        and returs with the left or right truncated part 
         """
         tr_exons = None
         if prime == 5:
@@ -129,12 +186,26 @@ class SV_Maker:
         return ExonCoords(gene.chromosome, gene.strand, gene.breakpoint, gene.gene_name, tr_exons)
 
     def fuse_genes(self):
+        # dealing with tandem repeats:
         # first we have to get parts by strand
-        # - strand means we want to have the left part from the breakpoint, 
-        # + strand means we want to have the right part
-        prime5part = self.getFusedPart(self.prime5,5)
-        prime3part = self.getFusedPart(self.prime3,3)
+        # - strand means we want to have the 
+        #       right part from the breakpoint for 5'
+        #       left part from the breakpoint for 3'
+        #       join them by starting with the 5' part,
+        #       add the 3' part to its left
+        # + strand means we want to have the 
+        #       left part from the breakpoint for 5'
+        #       right part from the breakpoint for 3'
+        #       join them by starting with the 5' part
+        #       add the 3' part to its right
+        prime5part = None
+        prime3part = None
+        if(self.prime5.strand < 0):
+            prime5part = ExonCoords(self.prime5.chromosome, self.prime5.strand, self.prime5.breakpoint, self.prime5.gene_name, self.get_right_part(self.prime5) )
+            prime3part = ExonCoords(self.prime3.chromosome, self.prime3.strand, self.prime3.breakpoint, self.prime3.gene_name, self.get_left_part(self.prime3) )
         # now move the 3' part to the 5' part
+        #self.print_as_bed(prime5part.exons)
+        #self.print_as_bed(prime3part.exons)
         p5borders = (prime5part.exons.begin(), prime5part.exons.end())
         p3borders = (prime3part.exons.begin(), prime3part.exons.end())
         # |------5------|
@@ -225,6 +296,7 @@ def print_SV(vcf, svg):
     fusion_re = re.compile(".*gene_fusion.*")
     tandem_re = re.compile(".*DUP\:TANDEM.*")
     transloc_re = re.compile(".*MantaBND.*")
+    ann_re = re.compile(".*ID=ANN.*")
     # we are dealing with PASS only
     filter_re = re.compile(".*PASS.*")
 
@@ -232,21 +304,43 @@ def print_SV(vcf, svg):
     pic_count = 0
     # read the VCF file:
     vcf_file = open(vcf,'r')
+    sep = SnpEffParser()
     for line in vcf_file:
+        line = line.rstrip()
+        # if it is contains the snpEff "ANN" line
+        if ann_re.match(line):
+            sep.add_ann_keys(line)
+            print("Keys:", sep.ann_keys)
         # it is PASS, has the annotation "gene_fusion" and certainly not a comment
         if filter_re.match(line) and fusion_re.match(line) and not comment_re.match(line):
-            line = line.rstrip()
             sv_call = line.split("\t")
             # process tandem duplications
             if tandem_re.match(line):
+                # parse snpEff annotations, and store fusions
+                sep.parse_se_ann(sv_call[7],fusion_re)
+                print(sep.ann_list)
                 print("processing tandem duplication",sv_call[2])
                 start = int(sv_call[1])  # column 2 is the SV starting point in the call - just we do not know yet the name of the gene
                 snpEff_ann = sv_call[7].split("|")
                 # Munching through the "END=140789598;SVTYPE=DUP;SVLEN=1932669;CIPOS=0,1;CIEND=0,1;HOMLEN=1;HOMSEQ=G;SOMATIC;SOMATICSCORE=85;ANN=<DUP:TANDEM>" string to get 140789598
                 end = int(snpEff_ann[0].split(";")[0].replace("END=",""))
                 ENS_IDs = snpEff_ann[4].split("&")
-                prime_5 = ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[0]))
-                prime_3 = ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[1]))
+
+                # for forward strand pairs the 5' end is the gene with higher coordinates
+                # for reverse strand pairs it is the gene with lower coordinates
+                # for tandem duplication fusions the strands should be the same
+                genes_to_join = [ ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[0])) , ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[1])) ]
+                # forward strand cases
+                if genes_to_join[0].strand > 0 and genes_to_join[1].strand > 0:
+                    if genes_to_join[0].begin() < genes_to_join[1].begin(): # we have to swap them as the first is the 3'
+                        genes_to_join = [ genes_to_join[1], genes_to_join[0]]
+                else:   # negative strand
+                    if genes_to_join[0].begin() > genes_to_join[1].begin(): # note the relation sign >
+                        genes_to_join = [ genes_to_join[1], genes_to_join[0]]
+
+                # now we should have the 5' as the first in the list
+                prime_5 = genes_to_join[0]
+                prime_3 = genes_to_join[1]
                 fusion = SV_Maker(prime_5,prime_3, start, end)
                 pic_count = makeSVG(fusion.fuse_genes(), svg, pic_count)
                 #makeSVG((IntervalTree([Interval(2900,3000),Interval(2700,2800),Interval(1500,1600)]),IntervalTree([Interval(0,100),Interval(200,300),Interval(1400,1500)])), svg)
