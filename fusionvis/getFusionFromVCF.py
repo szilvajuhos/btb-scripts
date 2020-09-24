@@ -13,8 +13,9 @@ class SnpEffParser:
         We are processing an snpEff annotation entry (not a VCF line, but the ANN= stuff)
         and returning with a list of dictionaries
     """
+
     def __init__(self):
-        self._ann_list = list() # list of annotations 
+        self._ann_list = list()  # list of annotations
         self._ann_keys = list()
 
     @property
@@ -25,7 +26,7 @@ class SnpEffParser:
     def ann_list(self):
         return self._ann_list
 
-    def add_ann_list(seld,ann:dict):
+    def add_ann_list(self,ann:dict):
         self._ann_list.append(ann)
 
     def add_ann_keys(self,ann_line:str):
@@ -37,7 +38,7 @@ class SnpEffParser:
         for item in entries:
             self._ann_keys.append(item.strip())
 
-    def parse_se_ann(self,line,fusion_re):
+    def parse_se_ann(self,line,regexp):
         """
         Annotation entries are delimited by commas, process each entry, and add to a list if contains gene_fusion
         """
@@ -45,7 +46,7 @@ class SnpEffParser:
         entries = line.split("ANN=")[1]
         entries = entries.split(",")
         for tr_ann in entries:  # get the transcript items
-            if fusion_re.match(tr_ann):
+            if regexp.match(tr_ann):
                 # chop up values into a list
                 ann_list = tr_ann.split("|")
                 # add values into a dict
@@ -62,11 +63,11 @@ class ExonCoords:
         self.gene_name = gene_name
         self.exons = IntervalTree(exons)
 
-    @classmethod 
+    @classmethod
     def fromTuple(cls, a_tuple):
         return cls( a_tuple[0], a_tuple[1], a_tuple[2], a_tuple[3], a_tuple[4] )
 
-    @classmethod 
+    @classmethod
     def empty(cls):
         return cls("", 0, -1, "", IntervalTree() )
 
@@ -110,7 +111,7 @@ class ExonCoords:
     @property
     def exons(self):                # IntervalTree()
         return self._exons
-    @exons.setter   
+    @exons.setter
     def exons(self,exons):
         self._exons = exons
 
@@ -132,8 +133,8 @@ class SV_Maker:
         self.prime3 = ExonCoords(p3.chromosome, p3.strand, 0, p3.gene_name, p3.exons)
 
         # now assign breakpoints to genes:
-        # since using the Manta VCF line it is not yet clear 
-        # which gene contain which endpoint, we have to assign 
+        # since using the Manta VCF line it is not yet clear
+        # which gene contain which endpoint, we have to assign
         # them separately
         self.assign_breakpoint(start)
         self.assign_breakpoint(end)
@@ -158,7 +159,7 @@ class SV_Maker:
             # |--<---!-<--<--<--|
             #        xxxxxxxxxxxx
             tr_exons = gene.exons
-            tr_exons = tr_exons.overlap( gene.breakpoint, gene.exons.end()) 
+            tr_exons = tr_exons.overlap( gene.breakpoint, gene.exons.end())
             tr_exons.add(Interval(gene.breakpoint,gene.breakpoint+1))
             return tr_exons
 
@@ -166,14 +167,14 @@ class SV_Maker:
         chromosome = self.prime5.chromosome
         for e in sorted(exs):
             print(chromosome + "\t" + str(e.begin) + "\t" + str(e.end))
-            
+
     def getFusedPart(self, gene:ExonCoords, direction ) -> ExonCoords:
         """
         Breaks the gene coordinates at the breakpoint
-        and returs with the left or right truncated part 
+        and returs with the left or right truncated part
         """
         tr_exons = None
-        if prime == 5:
+        if direction == 5:
             if gene.strand > 0:
                 tr_exons = self.get_left_part(gene)
             else:
@@ -185,15 +186,15 @@ class SV_Maker:
                 tr_exons = self.get_left_part(gene)
         return ExonCoords(gene.chromosome, gene.strand, gene.breakpoint, gene.gene_name, tr_exons)
 
-    def fuse_genes(self):
+    def fuse_tandem_genes(self):
         # dealing with tandem repeats:
         # first we have to get parts by strand
-        # - strand means we want to have the 
+        # - strand means we want to have the
         #       right part from the breakpoint for 5'
         #       left part from the breakpoint for 3'
         #       join them by starting with the 5' part,
         #       add the 3' part to its left
-        # + strand means we want to have the 
+        # + strand means we want to have the
         #       left part from the breakpoint for 5'
         #       right part from the breakpoint for 3'
         #       join them by starting with the 5' part
@@ -203,9 +204,12 @@ class SV_Maker:
         if(self.prime5.strand < 0):
             prime5part = ExonCoords(self.prime5.chromosome, self.prime5.strand, self.prime5.breakpoint, self.prime5.gene_name, self.get_right_part(self.prime5) )
             prime3part = ExonCoords(self.prime3.chromosome, self.prime3.strand, self.prime3.breakpoint, self.prime3.gene_name, self.get_left_part(self.prime3) )
+        else:
+            prime5part = ExonCoords(self.prime5.chromosome, self.prime5.strand, self.prime5.breakpoint,
+                                    self.prime5.gene_name, self.get_left_part(self.prime5))
+            prime3part = ExonCoords(self.prime3.chromosome, self.prime3.strand, self.prime3.breakpoint,
+                                    self.prime3.gene_name, self.get_right_part(self.prime3))
         # now move the 3' part to the 5' part
-        #self.print_as_bed(prime5part.exons)
-        #self.print_as_bed(prime3part.exons)
         p5borders = (prime5part.exons.begin(), prime5part.exons.end())
         p3borders = (prime3part.exons.begin(), prime3part.exons.end())
         # |------5------|
@@ -217,7 +221,7 @@ class SV_Maker:
         #           |------3------|
         #                   |------5------|
         # |------3------|
-        # shift = (5'start - 3'start) 
+        # shift = (5'start - 3'start)
         # 3'start = 3'start + shift
         shift = 0
         if prime5part.strand > 0:
@@ -283,6 +287,11 @@ def get_CDS_coords(ENS_ID):
     return (chromosome, obj['strand'], 0, obj['display_name'], IntervalTree(sorted(exon_intervals.items())) )
 
 
+# we are storing pairs of translocations in this dictionary. It is like when we are searching for
+# the breakpoint for MantaBND:75600:3:7:0:0:0:1      A       A]CHR6:108561001], it should be
+# {"MantaBND:75600:3:7:0:0:0:0":"G]CHR11:65662561]"}
+BND_dict = {}
+
 # This is the surrogate for main(): everything happens here
 
 @click.command(context_settings = dict( help_option_names = ['-h', '--help'] ))
@@ -292,7 +301,7 @@ def get_CDS_coords(ENS_ID):
 def print_SV(vcf, svg):
     # comment regexp
     comment_re = re.compile("^#.*")
-    # further regexps to dig out fusions 
+    # further regexps to dig out fusions
     fusion_re = re.compile(".*gene_fusion.*")
     tandem_re = re.compile(".*DUP\:TANDEM.*")
     transloc_re = re.compile(".*MantaBND.*")
@@ -310,16 +319,15 @@ def print_SV(vcf, svg):
         # if it is contains the snpEff "ANN" line
         if ann_re.match(line):
             sep.add_ann_keys(line)
-            print("Keys:", sep.ann_keys)
+            #print("Keys:", sep.ann_keys)
         # it is PASS, has the annotation "gene_fusion" and certainly not a comment
         if filter_re.match(line) and fusion_re.match(line) and not comment_re.match(line):
             sv_call = line.split("\t")
             # process tandem duplications
             if tandem_re.match(line):
                 # parse snpEff annotations, and store fusions
-                sep.parse_se_ann(sv_call[7],fusion_re)
-                print(sep.ann_list)
-                print("processing tandem duplication",sv_call[2])
+                #sep.parse_se_ann(sv_call[7],fusion_re)
+                print("######################## processing tandem duplication ####################### ",sv_call[2])
                 start = int(sv_call[1])  # column 2 is the SV starting point in the call - just we do not know yet the name of the gene
                 snpEff_ann = sv_call[7].split("|")
                 # Munching through the "END=140789598;SVTYPE=DUP;SVLEN=1932669;CIPOS=0,1;CIEND=0,1;HOMLEN=1;HOMSEQ=G;SOMATIC;SOMATICSCORE=85;ANN=<DUP:TANDEM>" string to get 140789598
@@ -329,7 +337,8 @@ def print_SV(vcf, svg):
                 # for forward strand pairs the 5' end is the gene with higher coordinates
                 # for reverse strand pairs it is the gene with lower coordinates
                 # for tandem duplication fusions the strands should be the same
-                genes_to_join = [ ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[0])) , ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[1])) ]
+                genes_to_join = [ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[0])),
+                                 ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[1]))]
                 # forward strand cases
                 if genes_to_join[0].strand > 0 and genes_to_join[1].strand > 0:
                     if genes_to_join[0].begin() < genes_to_join[1].begin(): # we have to swap them as the first is the 3'
@@ -342,11 +351,39 @@ def print_SV(vcf, svg):
                 prime_5 = genes_to_join[0]
                 prime_3 = genes_to_join[1]
                 fusion = SV_Maker(prime_5,prime_3, start, end)
-                pic_count = makeSVG(fusion.fuse_genes(), svg, pic_count)
-                #makeSVG((IntervalTree([Interval(2900,3000),Interval(2700,2800),Interval(1500,1600)]),IntervalTree([Interval(0,100),Interval(200,300),Interval(1400,1500)])), svg)
-                #makeSVG((IntervalTree([Interval(0,100),Interval(200,300),Interval(1400,1500)]),IntervalTree([Interval(1500,1600),Interval(2700,2800),Interval(2900,3000)])), svg)
-            elif transloc_re.match(line): # usual translocations
-                print("processing translocation", sv_call[2])
+                pic_count = makeSVG(fusion.fuse_tandem_genes(), svg, pic_count)
+                print("###############################################################################")
+            elif transloc_re.match(line): # translocations
+                print("----------------- processing translocation ---------------------- ",
+                      sv_call[0], sv_call[1], sv_call[2])
+                # get the annotation part
+                snpEff_ann = sv_call[7].split("|")
+                # look up whether the other end of the translocation is already stored
+                mate_ID = snpEff_ann[0].split(";")[1].replace("MATEID=", "")
+                print("Searching ", mate_ID)
+                if mate_ID in BND_dict.keys():
+                    ENS_IDs = snpEff_ann[4].split("&")
+                    genes_to_join = [ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[0])),
+                                     ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[1]))]
+                    # we can have meaningful fusions only for cases like (B is for 'base')
+                    # a) genes are parallel (FF or RR), and the chromosome join is B[mate[ - ]mate]B
+                    # b) genes are FR, join is B]mate] - B]mate]
+                    # c) genes are RF, join is [mate[B - [mate[B
+                    # see VCF documentation "5.4 Specifying complex rearrangements with breakends"
+                    if genes_to_join[0].strand == genes_to_join[1].strand:
+                        print("Parallel strand mates", sv_call[2], sv_call[4],
+                              "with mate ID", mate_ID, BND_dict[mate_ID])
+                    else:
+                        # find out whether it is B]mate]-B]mate] or [mate[B-[mate[B
+                        rev_mate_re = re.compile(".*]CHR*.:[0-9].*]")
+                        # for B]mate]-B]mate] we want left for both
+                        if rev_mate_re.match(sv_call[4]):
+                            print("reverse antiparallel strand mates", sv_call[2], sv_call[4],
+                                  "with mate ID", mate_ID, BND_dict[mate_ID])
+
+                        # for [mate[B-[mate[B we want right for both
+                else:
+                    BND_dict[sv_call[2]] = sv_call[4]
 
 def makeSVG(fex, svg, pic_count):
     w, h = '100%', '100%'
@@ -369,7 +406,7 @@ def shape_intervals(dwg, shapes, itv, color):
         width = int((iv.end - iv.begin)/100)
         shapes.add( dwg.rect(insert=(s*mm,0), size=(width*mm, height), fill=color, stroke=color, stroke_width=1) )
     return shapes
-    
+
 
 if __name__ == "__main__":
     print_SV()
