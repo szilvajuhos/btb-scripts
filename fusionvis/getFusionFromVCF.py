@@ -135,9 +135,10 @@ class SV_Maker:
         # now assign breakpoints to genes:
         # since using the Manta VCF line it is not yet clear
         # which gene contain which endpoint, we have to assign
-        # them separately
-        self.assign_breakpoint(start)
-        self.assign_breakpoint(end)
+        # them separately - only if they are meaningful values
+        if start is not None and end is not None and start > 0 and end > 0:
+            self.assign_breakpoint(start)
+            self.assign_breakpoint(end)
 
     def assign_breakpoint(self,bp):
         for gene in [self.prime5, self.prime3]:
@@ -146,6 +147,15 @@ class SV_Maker:
             gene_ends.add(Interval(gene_coords.begin(), gene_coords.end()))
             if gene_ends.at(bp):
                 gene.breakpoint = bp
+
+    def assign_breakpoint_to_genes(self, bp: tuple):
+        chromosome = bp[0]
+        for gene in [self.prime5, self.prime3]:
+            if chromosome == gene.chromosome:
+                gene_extremes = IntervalTree()
+                gene_extremes.add(Interval(gene.exons.begin(), gene.exons.end()))
+                if gene_extremes.at(bp[1]):
+                    gene.breakpoint = bp[1]
 
     def get_left_part(self,gene:ExonCoords):
             # |-->---!->-->-->--|
@@ -378,10 +388,26 @@ def print_SV(vcf, svg):
                         rev_mate_re = re.compile(".*]CHR*.:[0-9].*]")
                         # for B]mate]-B]mate] we want left for both
                         if rev_mate_re.match(sv_call[4]):
+                            print("forward antiparallel strand mates", sv_call[2], sv_call[4],
+                                  "with mate ID", mate_ID, BND_dict[mate_ID])
+                            # the 5' will be the forward gene
+                            if genes_to_join[0].strand > 0:
+                                (prime_5, prime_3) = (genes_to_join[0], genes_to_join[1])
+                            else:
+                                (prime_5, prime_3) = (genes_to_join[1], genes_to_join[0])
+                            fusion = SV_Maker(prime_5, prime_3, None, None)
+                            # have to find out how the breakpoints are assigned
+                            # this is for the one in the VCF line
+                            fusion.assign_breakpoint_to_genes((sv_call[0], int(sv_call[1])))
+                            # this is for the mate
+                            breakpoint = extract_breakpoint(sv_call[4])
+                            fusion.assign_breakpoint_to_genes(breakpoint)
+
+                            fusion.print_properties()
+                        else:
+                            # for [mate[B-[mate[B we want right for both
                             print("reverse antiparallel strand mates", sv_call[2], sv_call[4],
                                   "with mate ID", mate_ID, BND_dict[mate_ID])
-
-                        # for [mate[B-[mate[B we want right for both
                 else:
                     BND_dict[sv_call[2]] = sv_call[4]
 
@@ -407,6 +433,18 @@ def shape_intervals(dwg, shapes, itv, color):
         shapes.add( dwg.rect(insert=(s*mm,0), size=(width*mm, height), fill=color, stroke=color, stroke_width=1) )
     return shapes
 
+def extract_breakpoint(a_bp: str):
+    # we are getting something like "A]CHR6:108561001]" or "[CHR8:108561001[T" string
+    # and we want to return with a ('chr12':123456) tuple
+    chrom = ""
+    coords = 0
+    if a_bp.startswith("["):    # it is like "[CHR8:108561001[T"
+        print("bugger [CHR8:108561001[T")
+    else:
+        mate_list = re.split(':|]', a_bp) # will be ['A', 'CHR6', '108561001', '']
+        chrom = mate_list[1].lower()
+        coords = int(mate_list[2])
+    return (chrom, coords)
 
 if __name__ == "__main__":
     print_SV()
