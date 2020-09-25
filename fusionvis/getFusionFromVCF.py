@@ -80,6 +80,11 @@ class ExonCoords:
         print("exons       :", self._exons)
         print("#########################################")
 
+    def print_as_bed(self):
+        chromosome = self.chromosome
+        for ex in sorted(self.exons):
+            print(chromosome + "\t" + str(ex.begin) + "\t" + str(ex.end))
+
     @property
     def gene_name(self):
         return self._gene_name
@@ -173,8 +178,7 @@ class SV_Maker:
             tr_exons.add(Interval(gene.breakpoint,gene.breakpoint+1))
             return tr_exons
 
-    def print_as_bed(self,exs):
-        chromosome = self.prime5.chromosome
+    def print_as_bed(self, chromosome, exs):
         for e in sorted(exs):
             print(chromosome + "\t" + str(e.begin) + "\t" + str(e.end))
 
@@ -212,8 +216,12 @@ class SV_Maker:
         prime5part = None
         prime3part = None
         if(self.prime5.strand < 0):
-            prime5part = ExonCoords(self.prime5.chromosome, self.prime5.strand, self.prime5.breakpoint, self.prime5.gene_name, self.get_right_part(self.prime5) )
-            prime3part = ExonCoords(self.prime3.chromosome, self.prime3.strand, self.prime3.breakpoint, self.prime3.gene_name, self.get_left_part(self.prime3) )
+            prime5part = ExonCoords(self.prime5.chromosome, self.prime5.strand, 
+                                    self.prime5.breakpoint, self.prime5.gene_name, 
+                                    self.get_right_part(self.prime5) )
+            prime3part = ExonCoords(self.prime3.chromosome, self.prime3.strand, 
+                                    self.prime3.breakpoint, self.prime3.gene_name, 
+                                    self.get_left_part(self.prime3) )
         else:
             prime5part = ExonCoords(self.prime5.chromosome, self.prime5.strand, self.prime5.breakpoint,
                                     self.prime5.gene_name, self.get_left_part(self.prime5))
@@ -253,6 +261,56 @@ class SV_Maker:
         for iv in shifted3p:
             based03p.add(Interval(iv.begin-left_shift, iv.end-left_shift))
         return (based05p,based03p)
+
+    def fuse_translocations(self, p5dir, p3dir):
+        prime5part = None
+        prime3part = None
+        # TODO: DRY it out
+        if p5dir == self.DIR_LEFT:
+            prime5part = ExonCoords(self.prime5.chromosome, self.prime5.strand,
+                                    self.prime5.breakpoint, self.prime5.gene_name,
+                                    self.get_left_part(self.prime5))
+        else:
+            prime3part = ExonCoords(self.prime3.chromosome, self.prime3.strand,
+                                    self.prime3.breakpoint, self.prime3.gene_name,
+                                    self.get_right_part(self.prime3))
+        if p3dir == self.DIR_LEFT:
+            prime3part = ExonCoords(self.prime3.chromosome, self.prime3.strand,
+                                    self.prime3.breakpoint, self.prime3.gene_name,
+                                    self.get_left_part(self.prime3))
+        else:
+            prime3part = ExonCoords(self.prime3.chromosome, self.prime3.strand,
+                                    self.prime3.breakpoint, self.prime3.gene_name,
+                                    self.get_right_part(self.prime3))
+
+        if p5dir == self.DIR_LEFT and p3dir == self.DIR_LEFT:
+            # forward antiparallel
+            # we have to turn the reverse strand 3' gene backwards
+            prime3part = self.turn_backwards(prime3part)
+
+#        self.print_as_bed(prime5part.chromosome, prime5part.exons)
+#        self.print_as_bed(prime3part.chromosome, prime3part.exons)
+
+    def turn_backwards(self,exs: ExonCoords):
+        """
+        We have coords like:
+        |###|----|####|--|#|
+        and want to have something like:
+        |#|--|####|----|###|
+        :param exs:
+        ExonCoords that we want to turn backwards
+        :return:
+        new IntervalTree() with backwards coordinates
+        """
+        gene_start = exs.exons.begin()
+        gene_end = exs.exons.end()
+        new_exons = IntervalTree()
+        for item in sorted(exs.exons):
+            new_end = gene_end - (item.begin - gene_start)
+            new_start = gene_end + gene_start - item.end
+            print(exs.chromosome + "\t" + str(new_start) + "\t" + str(new_end) + "\t"+ exs.gene_name)
+            new_exons.add(Interval(new_start,new_end))
+        return ExonCoords(exs.chromosome, exs.strand, exs.breakpoint, exs.gene_name, new_exons)
 
     def print_properties(self):
         print("5' gene:")
@@ -402,7 +460,7 @@ def print_SV(vcf, svg):
                             # this is for the mate
                             breakpoint = extract_breakpoint(sv_call[4])
                             fusion.assign_breakpoint_to_genes(breakpoint)
-
+                            fusion.fuse_translocations(fusion.DIR_LEFT, fusion.DIR_LEFT)
                             fusion.print_properties()
                         else:
                             # for [mate[B-[mate[B we want right for both
