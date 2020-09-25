@@ -287,9 +287,22 @@ class SV_Maker:
             # forward antiparallel
             # we have to turn the reverse strand 3' gene backwards
             prime3part = self.turn_backwards(prime3part)
+            # and have to stick it to the 5' part
+            # we are ignoring chromosomes this time
+            # TODO: DRY it out
+            based05p = self.shift_left_to(0,prime5part)
+            based03p = self.shift_left_to(based05p.end(), prime3part)
+            print(based05p)
+            print(based03p)
+            return (based05p, based03p)
 
-#        self.print_as_bed(prime5part.chromosome, prime5part.exons)
-#        self.print_as_bed(prime3part.chromosome, prime3part.exons)
+
+    def shift_left_to(self, new_base: int, exs: ExonCoords):
+        rebased = IntervalTree()
+        shift = exs.exons.begin() - new_base
+        for item in exs.exons:
+            rebased.add(Interval(item.begin-shift, item.end-shift))
+        return rebased
 
     def turn_backwards(self,exs: ExonCoords):
         """
@@ -308,7 +321,7 @@ class SV_Maker:
         for item in sorted(exs.exons):
             new_end = gene_end - (item.begin - gene_start)
             new_start = gene_end + gene_start - item.end
-            print(exs.chromosome + "\t" + str(new_start) + "\t" + str(new_end) + "\t"+ exs.gene_name)
+            # print(exs.chromosome + "\t" + str(new_start) + "\t" + str(new_end) + "\t"+ exs.gene_name)
             new_exons.add(Interval(new_start,new_end))
         return ExonCoords(exs.chromosome, exs.strand, exs.breakpoint, exs.gene_name, new_exons)
 
@@ -327,6 +340,8 @@ class SV_Maker:
         start = exons.begin()
         end = exons.end()
         print("gene coords:", self.prime3.chromosome + ":" + str(start) + "-" + str(end) )
+        self.prime5.print_as_bed()
+        self.prime3.print_as_bed()
 
 
 
@@ -460,7 +475,8 @@ def print_SV(vcf, svg):
                             # this is for the mate
                             breakpoint = extract_breakpoint(sv_call[4])
                             fusion.assign_breakpoint_to_genes(breakpoint)
-                            fusion.fuse_translocations(fusion.DIR_LEFT, fusion.DIR_LEFT)
+                            svg_coords = fusion.fuse_translocations(fusion.DIR_LEFT, fusion.DIR_LEFT)
+                            pic_count = makeSVG(svg_coords, svg, pic_count)
                             fusion.print_properties()
                         else:
                             # for [mate[B-[mate[B we want right for both
