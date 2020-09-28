@@ -516,13 +516,19 @@ def makeSVG(fex, svg, pic_count):
     w, h = '100%', '100%'
     outfile = str(pic_count) + "_" + svg
     dwg = svgwrite.Drawing(filename=outfile, size=(w, h), debug=True)
+    # background
     dwg.add(dwg.rect(insert=(0, 0), size=(w, h), fill='white', stroke='black'))
+    # exons
     shapes = dwg.add(dwg.g(id='shapes', fill='red'))
+    # 5' part of exons
     shapes = shape_intervals(dwg, shapes, fex[0], 'blue')
+    # 3' part of exons
     shapes = shape_intervals(dwg, shapes, fex[1], 'red')
+    # introns
     shapes.add(dwg.rect(insert=(fex[0].begin() / 100 * mm, 8 * mm),
-                        size=(int(fex[0].begin() - fex[0].end()) / 100 * mm, 2 * mm), fill='blue', stroke_width=0))
-    shapes.add(dwg.rect(insert=(0, 8 * mm), size=((fex[1].end()) / 100 * mm, 2 * mm), fill='red', stroke='red'))
+                        size=(int(fex[0].begin() - fex[0].end()) / 100 * mm, 2 * mm), fill='blue'))
+    shapes.add(dwg.rect(insert=(fex[1].begin() / 100 * mm, 8 * mm),
+                        size=((fex[1].end()-fex[1].begin()) / 100 * mm, 2 * mm), fill='red'))
     dwg.save()
     print("Fusion picture is at", outfile)
     return pic_count + 1
