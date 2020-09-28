@@ -178,10 +178,7 @@ class SV_Maker:
         # |-->---!->-->-->--|
         # xxxxxxxx
         # if the breakpoint is in an intron, we have to add a 1-base long interval at the breakpoint
-        breakpoint_in_exon = False
-        ii = iter(gene.exons)
-        while ii and not breakpoint_in_exon:
-            breakpoint_in_exon = next(ii).contains_point(gene.breakpoint)
+        breakpoint_in_exon = True if len(gene.exons.at(gene.breakpoint))>0 else False
         if not breakpoint_in_exon:
             print("**** intron breakpoint at -> ",gene.breakpoint-1,gene.breakpoint)
             gene.exons.add(Interval(gene.breakpoint-1,gene.breakpoint))
@@ -374,17 +371,24 @@ def get_CDS_coords(ENS_ID):
     with open(ENS_ID + '.json', 'r') as myfile:
         data = myfile.read()
     obj = json.loads(data)
-    # now go through the Transcript list
-    transcripts = obj['Transcript']
     chromosome = "chr" + str(obj['seq_region_name'])
     exon_intervals = IntervalTree()
-    for trs in transcripts:
-        # go through each transcript, and store coordinate intervals
-        for exon in trs['Exon']:
-            start = exon['start']
-            end = exon['end']
-            exon_intervals.add(Interval(start, end))
+    for exon in obj['Exon']:
+        start = exon['start']
+        end = exon['end']
+        exon_intervals.add(Interval(start, end))
     exon_intervals.merge_overlaps()
+    # now go through the Transcript list
+    # transcripts = obj['Transcript']
+    # chromosome = "chr" + str(obj['seq_region_name'])
+    # exon_intervals = IntervalTree()
+    # for trs in transcripts:
+    #     # go through each transcript, and store coordinate intervals
+    #     for exon in trs['Exon']:
+    #         start = exon['start']
+    #         end = exon['end']
+    #         exon_intervals.add(Interval(start, end))
+    # exon_intervals.merge_overlaps()
     print("exons from ENSEMBL JSON:")
     print_exons_as_bed(chromosome, IntervalTree(sorted(exon_intervals.items())), obj['display_name'])
     return (chromosome, obj['strand'], 0, obj['display_name'], IntervalTree(sorted(exon_intervals.items())))
@@ -471,7 +475,9 @@ def print_SV(vcf, svg):
                 mate_ID = snpEff_ann[0].split(";")[1].replace("MATEID=", "")
                 print("Searching ", mate_ID)
                 if mate_ID in BND_dict.keys():
-                    ENS_IDs = snpEff_ann[4].split("&")
+                    # instead of the gene IDs we should go for the transcript IDs
+                    # that are a bit more complicated to get
+                    ENS_IDs = get_transcript_IDs(snpEff_ann[10])
                     genes_to_join = [ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[0])),
                                      ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[1]))]
                     # we can have meaningful fusions only for cases like (B is for 'base')
@@ -511,6 +517,10 @@ def print_SV(vcf, svg):
                 else:
                     BND_dict[sv_call[2]] = sv_call[4]
 
+def get_transcript_IDs(ann):
+    # splitting string that is like "t(11%3B6)(ENST00000406246:Glu3_Ter552%3BENST00000343882:Met1)"
+    transcripts = re.split('\(|\)|:|%3B',ann)
+    return [transcripts[4],transcripts[6]]
 
 def makeSVG(fex, svg, pic_count):
     w, h = '100%', '100%'
