@@ -364,20 +364,22 @@ def get_CDS_coords(ENS_ID):
     # look docs at https://rest.ensembl.org/
     print("Looking up " + ENS_ID)
     ext = "/lookup/id/" + ENS_ID + "?expand=1"
-    #    r = requests.get(server+ext, headers={ "Content-Type" : "application/json"})
-    #    if not r.ok:
-    #        r.raise_for_status()
-    #        sys.exit()
+    # r = requests.get(server+ext, headers={ "Content-Type" : "application/json"})
+    # if not r.ok:
+    #    r.raise_for_status()
+    #    sys.exit()
+    # obj = r.json()
+
     with open(ENS_ID + '.json', 'r') as myfile:
         data = myfile.read()
     obj = json.loads(data)
     chromosome = "chr" + str(obj['seq_region_name'])
-    exon_intervals = IntervalTree()
-    for exon in obj['Exon']:
-        start = exon['start']
-        end = exon['end']
-        exon_intervals.add(Interval(start, end))
-    exon_intervals.merge_overlaps()
+    exon_intervals = read_from_json(obj)
+    # for exon in obj['Exon']:
+    #     start = exon['start']
+    #    end = exon['end']
+    #    exon_intervals.add(Interval(start, end))
+    # exon_intervals.merge_overlaps()
     # now go through the Transcript list
     # transcripts = obj['Transcript']
     # chromosome = "chr" + str(obj['seq_region_name'])
@@ -392,6 +394,26 @@ def get_CDS_coords(ENS_ID):
     print("exons from ENSEMBL JSON:")
     print_exons_as_bed(chromosome, IntervalTree(sorted(exon_intervals.items())), obj['display_name'])
     return (chromosome, obj['strand'], 0, obj['display_name'], IntervalTree(sorted(exon_intervals.items())))
+
+def read_from_json(obj):
+    intree = IntervalTree()
+    chromosome = "chr" + str(obj['seq_region_name'])
+    # if we have a whole gene with many transcripts,
+    # find the canonical one:
+    if 'Transcript' in obj.keys():
+        transcripts = obj['Transcript']
+        for trs in obj['Transcript']:
+            # go only for the canonical one
+            if trs['is_canonical'] > 0:
+                for exon in trs['Exon']:
+                    intree.add(Interval(exon['start'], exon['end']))
+    else:
+        # it is a single transcript only
+        for exon in obj['Exon']:
+            intree.add(Interval(exon['start'], exon['end']))
+
+    intree.merge_overlaps()
+    return intree
 
 def print_exons_as_bed(chrom,exons,gene_name):
     for item in exons:
