@@ -364,15 +364,16 @@ def get_CDS_coords(ENS_ID):
     # look docs at https://rest.ensembl.org/
     print("Looking up " + ENS_ID)
     ext = "/lookup/id/" + ENS_ID + "?expand=1"
-    # r = requests.get(server+ext, headers={ "Content-Type" : "application/json"})
-    # if not r.ok:
-    #    r.raise_for_status()
-    #    sys.exit()
-    # obj = r.json()
+    r = requests.get(server+ext, headers={ "Content-Type" : "application/json"})
+    if not r.ok:
+       r.raise_for_status()
+       sys.exit()
+    obj = r.json()
 
-    with open(ENS_ID + '.json', 'r') as myfile:
-        data = myfile.read()
-    obj = json.loads(data)
+    # with open(ENS_ID + '.json', 'r') as myfile:
+    #     data = myfile.read()
+    # obj = json.loads(data)
+
     chromosome = "chr" + str(obj['seq_region_name'])
     exon_intervals = read_from_json(obj)
     # print("exons from ENSEMBL JSON:")
@@ -445,8 +446,8 @@ def print_SV(vcf, svg):
                 # parse snpEff annotations, and store fusions
                 # sep.parse_se_ann(sv_call[7],fusion_re)
                 print("######################## processing tandem duplication ####################### ", sv_call[2])
-                start = int(sv_call[
-                                1])  # column 2 is the SV starting point in the call - just we do not know yet the name of the gene
+                # column 2 is the SV starting point in the call - just we do not know yet the name of the gene
+                start = int(sv_call[1])
                 snpEff_ann = sv_call[7].split("|")
                 # Munching through the "END=140789598;SVTYPE=DUP;SVLEN=1932669;CIPOS=0,1;CIEND=0,1;HOMLEN=1;HOMSEQ=G;SOMATIC;SOMATICSCORE=85;ANN=<DUP:TANDEM>" string to get 140789598
                 end = int(snpEff_ann[0].split(";")[0].replace("END=", ""))
@@ -459,8 +460,7 @@ def print_SV(vcf, svg):
                                  ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[1]))]
                 # forward strand cases
                 if genes_to_join[0].strand > 0 and genes_to_join[1].strand > 0:
-                    if genes_to_join[0].begin() < genes_to_join[
-                        1].begin():  # we have to swap them as the first is the 3'
+                    if genes_to_join[0].begin() < genes_to_join[1].begin():  # we have to swap them as the first is the 3'
                         genes_to_join = [genes_to_join[1], genes_to_join[0]]
                 else:  # negative strand
                     if genes_to_join[0].begin() > genes_to_join[1].begin():  # note the relation sign >
