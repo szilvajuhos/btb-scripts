@@ -178,9 +178,9 @@ class SV_Maker:
         # |-->---!->-->-->--|
         # xxxxxxxx
         # if the breakpoint is in an intron, we have to add a 1-base long interval at the breakpoint
-        breakpoint_in_exon = True if len(gene.exons.at(gene.breakpoint))>0 else False
+        breakpoint_in_exon = True if len(gene.exons.at(gene.breakpoint)) > 0 else False
         if not breakpoint_in_exon:
-            print("**** intron breakpoint at -> ",gene.breakpoint-1,gene.breakpoint)
+            print("**** intron breakpoint at -> ", gene.chromosome +":"+str(gene.breakpoint-1))
             gene.exons.add(Interval(gene.breakpoint-1,gene.breakpoint))
         # when the breakpoint is in an exon, we have to shorten that one
         gene.exons.chop(gene.breakpoint, gene.exons.end())
@@ -375,24 +375,8 @@ def get_CDS_coords(ENS_ID):
     obj = json.loads(data)
     chromosome = "chr" + str(obj['seq_region_name'])
     exon_intervals = read_from_json(obj)
-    # for exon in obj['Exon']:
-    #     start = exon['start']
-    #    end = exon['end']
-    #    exon_intervals.add(Interval(start, end))
-    # exon_intervals.merge_overlaps()
-    # now go through the Transcript list
-    # transcripts = obj['Transcript']
-    # chromosome = "chr" + str(obj['seq_region_name'])
-    # exon_intervals = IntervalTree()
-    # for trs in transcripts:
-    #     # go through each transcript, and store coordinate intervals
-    #     for exon in trs['Exon']:
-    #         start = exon['start']
-    #         end = exon['end']
-    #         exon_intervals.add(Interval(start, end))
-    # exon_intervals.merge_overlaps()
-    print("exons from ENSEMBL JSON:")
-    print_exons_as_bed(chromosome, IntervalTree(sorted(exon_intervals.items())), obj['display_name'])
+    # print("exons from ENSEMBL JSON:")
+    # print_exons_as_bed(chromosome, IntervalTree(sorted(exon_intervals.items())), obj['display_name'])
     return (chromosome, obj['strand'], 0, obj['display_name'], IntervalTree(sorted(exon_intervals.items())))
 
 def read_from_json(obj):
@@ -565,14 +549,15 @@ def makeSVG(fex, svg, pic_count):
     print("Fusion picture is at", outfile)
     return pic_count + 1
 
-def shape_intervals(dwg, shapes, itv, color):
-    height = 2 * cm;
+def shape_intervals(dwg, shapes, itv: ExonCoords, color):
+    height = 2 * cm
     for iv in itv:
-        s = iv.begin / 100
-        width = int(abs(iv.end - iv.begin + 100 ) / 100)
-        print("SVG:", s*mm, 0, width*mm, height)
-        shapes.add(dwg.rect(insert=(s * mm, 0), size=(width * mm, height),
-                            fill=color, stroke=color, stroke_width=1))
+        if abs(iv.end-iv.begin) > 1:
+            s = iv.begin / 100
+            width = int(abs(iv.end - iv.begin + 100 ) / 100)
+            # print("SVG:", s*mm, 0, width*mm, height)
+            shapes.add(dwg.rect(insert=(s * mm, 0), size=(width * mm, height),
+                                fill=color, stroke=color, stroke_width=1))
     return shapes
 
 
