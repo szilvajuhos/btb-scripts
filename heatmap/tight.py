@@ -20,8 +20,8 @@ class MakeHeat:
         print("Min: "+str(self.min))
         print("Max: "+str(self.max))
 
-        fig = plt.figure()
-        #fig = plt.figure(figsize=(15,7))
+        #fig = plt.figure()
+        fig = plt.figure(figsize=(32,18))
 
         chr1 = plt.subplot(1, 24, 1,title='chr1')
         # set colormap
@@ -60,7 +60,7 @@ class MakeHeat:
         plt.subplots_adjust(wspace=0.0, hspace=0.0)
         plt.savefig("heatmap.png")
         print("Figure printed to heatmap.png")
-        plt.show()
+        #plt.show()
 
     def _readCSVs(self):
         """

@@ -62,9 +62,12 @@ class IntervalPrinter:
         line = ""
         for i in range(0, self.chrLength, self.step):
             value = 2       # default value 
-            if len(self.t[i]) != 0:
+            # get all the values overlapping the current interval
+            overlap = self.t.overlap(i, i+self.step)
+            if len(overlap) != 0:
+                # we can have more than one intervals overlapping the current one
                 data = []
-                for interval_obj in self.t[i]:
+                for interval_obj in overlap:
                     data.append(interval_obj.data)
                 value = max(data)
 #                if value <= 0.0:
