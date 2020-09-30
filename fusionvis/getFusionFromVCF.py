@@ -421,7 +421,7 @@ def print_SV(vcf, svg):
     comment_re = re.compile("^#.*")
     # further regexps to dig out fusions
     fusion_re = re.compile(".*gene_fusion.*")
-    tandem_re = re.compile(".*DUP\:TANDEM.*")
+    tandem_re = re.compile(".*DUP:TANDEM.*")
     transloc_re = re.compile(".*MantaBND.*")
     ann_re = re.compile(".*ID=ANN.*")
     # we are dealing with PASS only

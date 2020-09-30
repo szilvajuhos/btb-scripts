@@ -1,7 +1,7 @@
 import csv
 import click
 from intervaltree import Interval, IntervalTree
-
+import re
 
 class IntervalPrinter:
     def __init__(self,file_type,infile,chrom,faidx,step):
@@ -59,9 +59,12 @@ class IntervalPrinter:
                     return int(row[1])
 
     def printLine(self):
+        sex_re = re.compile(".*[XY]")
         line = ""
+        value = 2 
         for i in range(0, self.chrLength, self.step):
-            value = 2       # default value 
+            # default value is 2 for autosomes and we have to correct for sex chromosomes below
+            value = 2
             # get all the values overlapping the current interval
             overlap = self.t.overlap(i, i+self.step)
             if len(overlap) != 0:
@@ -69,11 +72,9 @@ class IntervalPrinter:
                 data = []
                 for interval_obj in overlap:
                     data.append(interval_obj.data)
-                value = max(data)
-#                if value <= 0.0:
-#                    value = 2
+                value = max(data) #* (1 if not sex_re.match(self.chrom) else 2)
             line = line + str(value) + ","
-        line = line + "1"
+        line = line + str(value) 
         print(line)
 
 

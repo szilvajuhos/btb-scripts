@@ -2,7 +2,7 @@
 set -euo pipefail 
 
 # removing old data
-rm *csv
+rm -rf *csv heatmap.png
 
 #for f in P7708_105T P4551_218T; do
 for f in `cat current.samples`; do 
