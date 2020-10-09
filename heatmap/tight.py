@@ -20,8 +20,9 @@ class MakeHeat:
         print("Min: "+str(self.min))
         print("Max: "+str(self.max))
 
-        #fig = plt.figure()
-        fig = plt.figure(figsize=(32,18))
+        fig = plt.figure(figsize=(64,36))
+        #fig = plt.figure(figsize=(16,9))
+        #fig = plt.figure(figsize=(32,18))
 
         chr1 = plt.subplot(1, 24, 1,title='chr1')
         # set colormap
@@ -46,9 +47,11 @@ class MakeHeat:
                 chrPlot = plt.subplot(1, 24, 23,title='chrX')
             if plot == 'Y':
                 chrPlot = plt.subplot(1, 24, 24,title='chrY')
-                
+               
             X = self.chroms['chr'+str(plot)]
 
+            if plot == 8:
+                print(X)
             plt.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False) # labels along the bottom edge are off
             plt.tick_params(axis='y', which='both', left=False, right=False, labelleft=False) # labels along the left edge are off
             plt.pcolor(X,cmap='bwr', vmin=self.min, vmax=self.max)
@@ -101,8 +104,8 @@ class MakeHeat:
         else:
             minR = -abs(maxR)
         print(minR,maxR)
-        return(0,4)
-        return(minR,maxR)
+        return(-2,6)
+        #return(minR,maxR)
 
 @click.command(context_settings = dict( help_option_names = ['-h', '--help'] ))
 

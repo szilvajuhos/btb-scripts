@@ -183,7 +183,9 @@ class SV_Maker:
             print("**** intron breakpoint at -> ", gene.chromosome +":"+str(gene.breakpoint-1))
             gene.exons.add(Interval(gene.breakpoint-1,gene.breakpoint))
         # when the breakpoint is in an exon, we have to shorten that one
-        gene.exons.chop(gene.breakpoint, gene.exons.end())
+        # by chopping out the unneded part
+        # TODO check it for tandem repeats as looks it was a bug
+        gene.exons.chop(gene.exons.begin(), gene.breakpoint)
 
         return gene.exons
 
@@ -278,6 +280,27 @@ class SV_Maker:
         for iv in shifted3p:
             based03p.add(Interval(iv.begin - left_shift, iv.end - left_shift))
         return (based05p, based03p)
+
+    def fuse_inversion(self):
+        prime5part = None
+        prime3part = None
+        if self.prime5.strand > 0:  # forward 5'
+            print("Forward 5' inversion")
+            prime5part = ExonCoords(self.prime5.chromosome, self.prime5.strand,
+                                    self.prime5.breakpoint, self.prime5.gene_name,
+                                    self.get_left_part(self.prime5))
+            prime3part = ExonCoords(self.prime3.chromosome, self.prime3.strand,
+                                    self.prime3.breakpoint, self.prime3.gene_name,
+                                    self.get_left_part(self.prime3))
+        else:
+            print("Reverse 5' inversion")
+            prime5part = ExonCoords(self.prime5.chromosome, self.prime5.strand,
+                                    self.prime5.breakpoint, self.prime5.gene_name,
+                                    self.get_right_part(self.prime5))
+            prime3part = ExonCoords(self.prime3.chromosome, self.prime3.strand,
+                                    self.prime3.breakpoint, self.prime3.gene_name,
+                                    self.get_right_part(self.prime3))
+        return prime5part, prime3part
 
     def fuse_translocations(self, p5dir, p3dir):
         prime5part = None
@@ -427,6 +450,7 @@ def print_SV(vcf, svg, rest):
     fusion_re = re.compile(".*gene_fusion.*")
     tandem_re = re.compile(".*DUP:TANDEM.*")
     transloc_re = re.compile(".*MantaBND.*")
+    inversion_re = re.compile(".*INV.*")
     ann_re = re.compile(".*ID=ANN.*")
     # we are dealing with PASS only
     filter_re = re.compile(".*PASS.*")
@@ -527,6 +551,45 @@ def print_SV(vcf, svg, rest):
 
                 else:
                     BND_dict[sv_call[2]] = sv_call[4]
+            elif inversion_re.match(line):
+                print("######################## processing INVERSION ####################### ", sv_call[2])
+                start = int(sv_call[1])
+                # for inversions we do not have a given transcript
+                # (why? and why do we have for translocations? would be nice to understand)
+                annotations = sv_call[7].split("<INV>")
+                end = int(annotations[0].split(";")[0].replace("END=", ""))
+                # this nasty below is to get the canonical gene IDs from the first entry of
+                # annotations
+                ENS_IDs = (annotations[1].split("|")[4]).split("&")
+                genes_to_join = [ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[0], rest)),
+                                 ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[1], rest))]
+                # put the 5' part forward:
+                (prime_5,prime_3) = find_5prime_for_inversion(start, end, genes_to_join)
+
+                fusion = SV_Maker(prime_5, prime_3, start, end)
+                fused_gene = fusion.fuse_inversion()
+                for fg in fused_gene:
+                    fg.print_as_bed()
+
+def find_5prime_for_inversion(start, end, gtj: list):
+    """
+    We have two canonical genes, and we want to find out which one is the 5' and the 3'
+    :param start: beginning of the inversion
+    :param end: end of inversion
+    :param gtj: list of ENSEMBL genes
+    :return: tuple with 5' as the first, and 3' as the second
+    """
+    # first generate whole gene intervals:
+    gtj0_iv = IntervalTree.from_tuples([(gtj[0].exons.begin(), gtj[0].exons.end())])
+    gtj1_iv = IntervalTree.from_tuples([(gtj[1].exons.begin(), gtj[1].exons.end())])
+    gene_tuple = ()
+    if gtj[0].strand > 0:   # first gene is forward
+        if gtj0_iv.at(start):   # and the start point is in the first gene
+            gene_tuple = (gtj[0], gtj[1])   # leave as it is
+        else:
+            gene_tuple = (gtj[1], gtj[0])
+    #else:   # first gene is reverse
+    return gene_tuple
 
 def get_transcript_IDs(ann):
     # splitting string that is like "t(11%3B6)(ENST00000406246:Glu3_Ter552%3BENST00000343882:Met1)"
