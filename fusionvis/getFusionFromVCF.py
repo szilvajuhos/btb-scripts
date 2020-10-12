@@ -402,6 +402,9 @@ def get_CDS_coords(ENS_ID, rest):
             r.raise_for_status()
             sys.exit()
         obj = r.json()
+        json_file = open(ENS_ID + '.json', 'w')
+        json_file.write(r.content.decode('utf-8'))
+        json_file.close()
     else:   # we are reading from file
         with open(ENS_ID + '.json', 'r') as myfile:
             data = myfile.read()
@@ -640,7 +643,6 @@ def shape_intervals(dwg, shapes, itv: ExonCoords, color):
                                 fill=color, stroke=color, stroke_width=1))
     return shapes
 
-
 def extract_breakpoint(a_bp: str):
     # we are getting something like "A]CHR6:108561001]" or "[CHR8:108561001[T" string
     # and we want to return with a ('chr12':123456) tuple
@@ -653,7 +655,6 @@ def extract_breakpoint(a_bp: str):
         chrom = mate_list[1].lower()
         coords = int(mate_list[2])
     return (chrom, coords)
-
 
 if __name__ == "__main__":
     print_SV()
