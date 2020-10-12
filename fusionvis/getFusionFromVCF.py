@@ -282,8 +282,8 @@ class SV_Maker:
         return (based05p, based03p)
 
     def fuse_inversion(self):
-        prime5part = None
-        prime3part = None
+        based05p = None
+        based03p = None
         if self.prime5.strand > 0:  # forward 5'
             print("Forward 5' inversion")
             prime5part = ExonCoords(self.prime5.chromosome, self.prime5.strand,
@@ -295,11 +295,7 @@ class SV_Maker:
             # we have to turn around the 3' part
             # -->  <--
             prime3part = self.turn_backwards(prime3part)
-            based05p = self.shift_left_to(0, prime5part)
-            based03p = self.shift_left_to(based05p.end(), prime3part)
-            print(based05p)
-            print(based03p)
-            return based05p, based03p
+            # -->  -->
         else:
             print("Reverse 5' inversion")
             prime5part = ExonCoords(self.prime5.chromosome, self.prime5.strand,
@@ -308,7 +304,15 @@ class SV_Maker:
             prime3part = ExonCoords(self.prime3.chromosome, self.prime3.strand,
                                     self.prime3.breakpoint, self.prime3.gene_name,
                                     self.get_right_part(self.prime3))
-        return prime5part, prime3part
+            # now the inversion is like
+            # <--  -->
+            prime5part = self.turn_backwards(prime5part)
+            # -->  -->
+        based05p = self.shift_left_to(0, prime5part)
+        based03p = self.shift_left_to(based05p.end(), prime3part)
+        print(based05p)
+        print(based03p)
+        return based05p, based03p
 
     def fuse_translocations(self, p5dir, p3dir):
         prime5part = None
@@ -602,8 +606,10 @@ def find_5prime_for_inversion(start, end, gtj: list):
         else:
             gene_tuple = (gtj[1], gtj[0])
     else:   # first gene is reverse
-        print("5' reverse inversion is not implemented yet")
-
+        if gtj0_iv.at(start):   # this case the first gene will be the 3', so have to swap
+            gene_tuple = (gtj[1], gtj[0])
+        else:
+            gene_tuple = (gtj[0], gtj[1])
     return gene_tuple
 
 def get_transcript_IDs(ann):
