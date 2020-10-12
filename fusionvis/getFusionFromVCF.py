@@ -292,6 +292,14 @@ class SV_Maker:
             prime3part = ExonCoords(self.prime3.chromosome, self.prime3.strand,
                                     self.prime3.breakpoint, self.prime3.gene_name,
                                     self.get_left_part(self.prime3))
+            # we have to turn around the 3' part
+            # -->  <--
+            prime3part = self.turn_backwards(prime3part)
+            based05p = self.shift_left_to(0, prime5part)
+            based03p = self.shift_left_to(based05p.end(), prime3part)
+            print(based05p)
+            print(based03p)
+            return based05p, based03p
         else:
             print("Reverse 5' inversion")
             prime5part = ExonCoords(self.prime5.chromosome, self.prime5.strand,
@@ -567,9 +575,11 @@ def print_SV(vcf, svg, rest):
                 (prime_5,prime_3) = find_5prime_for_inversion(start, end, genes_to_join)
 
                 fusion = SV_Maker(prime_5, prime_3, start, end)
-                fused_gene = fusion.fuse_inversion()
-                for fg in fused_gene:
-                    fg.print_as_bed()
+                # fusions at inversions can be either
+                # <--  --> or -->  <--
+                svg_coords = fusion.fuse_inversion()
+                pic_count = makeSVG(svg_coords, svg, pic_count)
+                fusion.print_properties()
 
 def find_5prime_for_inversion(start, end, gtj: list):
     """
@@ -588,7 +598,9 @@ def find_5prime_for_inversion(start, end, gtj: list):
             gene_tuple = (gtj[0], gtj[1])   # leave as it is
         else:
             gene_tuple = (gtj[1], gtj[0])
-    #else:   # first gene is reverse
+    else:   # first gene is reverse
+        print("5' reverse inversion is not implemented yet")
+
     return gene_tuple
 
 def get_transcript_IDs(ann):
