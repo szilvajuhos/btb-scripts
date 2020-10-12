@@ -585,7 +585,7 @@ def print_SV(vcf, svg, rest):
                 # fusions at inversions can be either
                 # <--  --> or -->  <--
                 svg_coords = fusion.fuse_inversion()
-                pic_count = makeSVG(svg_coords, svg, pic_count)
+                pic_count = makeSVG(svg_coords, svg, pic_count, prime_5.gene_name, prime_3.gene_name)
                 fusion.print_properties()
 
 def find_5prime_for_inversion(start, end, gtj: list):
@@ -617,9 +617,9 @@ def get_transcript_IDs(ann):
     transcripts = re.split('\(|\)|:|%3B',ann)
     return [transcripts[4],transcripts[6]]
 
-def makeSVG(fex, svg, pic_count):
+def makeSVG(fex, svg, pic_count, prime5name, prime3name):
     w, h = '100%', '100%'
-    outfile = str(pic_count) + "_" + svg
+    outfile = str(pic_count) + "_" + prime5name + "_" + prime3name + "-" + svg
     dwg = svgwrite.Drawing(filename=outfile, size=(w, h), debug=True)
     # background
     dwg.add(dwg.rect(insert=(0, 0), size=(w, h), fill='white', stroke='black'))
