@@ -573,20 +573,23 @@ def print_SV(vcf, svg, rest):
                 # (why? and why do we have for translocations? would be nice to understand)
                 annotations = sv_call[7].split("<INV>")
                 end = int(annotations[0].split(";")[0].replace("END=", ""))
-                # this nasty below is to get the canonical gene IDs from the first entry of
-                # annotations
-                ENS_IDs = (annotations[1].split("|")[4]).split("&")
-                genes_to_join = [ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[0], rest)),
-                                 ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[1], rest))]
-                # put the 5' part forward:
-                (prime_5,prime_3) = find_5prime_for_inversion(start, end, genes_to_join)
-
-                fusion = SV_Maker(prime_5, prime_3, start, end)
-                # fusions at inversions can be either
-                # <--  --> or -->  <--
-                svg_coords = fusion.fuse_inversion()
-                pic_count = makeSVG(svg_coords, svg, pic_count, prime_5.gene_name, prime_3.gene_name)
-                fusion.print_properties()
+                # we can have more than one gene_fusion in the annotation list
+                for ann in annotations[1::]:
+                    ann_items = ann.split('|')
+                    # this nasty below is to get the canonical gene IDs from the first entry of
+                    # annotations
+                    if ann_items[1] == 'gene_fusion':
+                        ENS_IDs = ann_items[4].split("&")
+                        genes_to_join = [ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[0], rest)),
+                                        ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[1], rest))]
+                        # put the 5' part forward:
+                        (prime_5,prime_3) = find_5prime_for_inversion(start, end, genes_to_join)
+                        fusion = SV_Maker(prime_5, prime_3, start, end)
+                        # fusions at inversions can be either
+                        # <--  --> or -->  <--
+                        svg_coords = fusion.fuse_inversion()
+                        pic_count = makeSVG(svg_coords, svg, pic_count, prime_5.gene_name, prime_3.gene_name)
+                        fusion.print_properties()
 
 def find_5prime_for_inversion(start, end, gtj: list):
     """
