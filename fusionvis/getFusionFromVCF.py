@@ -180,12 +180,13 @@ class SV_Maker:
         # if the breakpoint is in an intron, we have to add a 1-base long interval at the breakpoint
         breakpoint_in_exon = True if len(gene.exons.at(gene.breakpoint)) > 0 else False
         if not breakpoint_in_exon:
-            print("**** intron breakpoint at -> ", gene.chromosome +":"+str(gene.breakpoint-1))
+            print("**** intron breakpoint at -> ", gene.chromosome + ":" + str(gene.breakpoint-1))
             gene.exons.add(Interval(gene.breakpoint-1,gene.breakpoint))
         # when the breakpoint is in an exon, we have to shorten that one
-        # by chopping out the unneded part
+        # by chopping out the unneeded part
         # TODO check it for tandem repeats as looks it was a bug
-        gene.exons.chop(gene.exons.begin(), gene.breakpoint)
+        # it is still a bug actually
+        gene.exons.chop(gene.breakpoint, gene.exons.end())
 
         return gene.exons
 
@@ -235,17 +236,29 @@ class SV_Maker:
         prime5part = None
         prime3part = None
         if (self.prime5.strand < 0):
-            prime5part = ExonCoords(self.prime5.chromosome, self.prime5.strand,
-                                    self.prime5.breakpoint, self.prime5.gene_name,
+            prime5part = ExonCoords(self.prime5.chromosome,
+                                    self.prime5.strand,
+                                    self.prime5.breakpoint,
+                                    self.prime5.gene_name,
                                     self.get_right_part(self.prime5))
-            prime3part = ExonCoords(self.prime3.chromosome, self.prime3.strand,
-                                    self.prime3.breakpoint, self.prime3.gene_name,
+            prime3part = ExonCoords(self.prime3.chromosome,
+                                    self.prime3.strand,
+                                    self.prime3.breakpoint,
+                                    self.prime3.gene_name,
                                     self.get_left_part(self.prime3))
         else:
-            prime5part = ExonCoords(self.prime5.chromosome, self.prime5.strand, self.prime5.breakpoint,
-                                    self.prime5.gene_name, self.get_left_part(self.prime5))
-            prime3part = ExonCoords(self.prime3.chromosome, self.prime3.strand, self.prime3.breakpoint,
-                                    self.prime3.gene_name, self.get_right_part(self.prime3))
+            prime5part = ExonCoords(self.prime5.chromosome,
+                                    self.prime5.strand,
+                                    self.prime5.breakpoint,
+                                    self.prime5.gene_name,
+                                    self.get_left_part(self.prime5))
+            prime3part = ExonCoords(self.prime3.chromosome,
+                                    self.prime3.strand,
+                                    self.prime3.breakpoint,
+                                    self.prime3.gene_name,
+                                    self.get_right_part(self.prime3))
+        prime5part.print_as_bed()
+        prime3part.print_as_bed()
         # now move the 3' part to the 5' part
         p5borders = (prime5part.exons.begin(), prime5part.exons.end())
         p3borders = (prime3part.exons.begin(), prime3part.exons.end())
@@ -262,7 +275,7 @@ class SV_Maker:
         # 3'start = 3'start + shift
         shift = 0
         if prime5part.strand > 0:
-            shift = prime5part.exons.begin() - prime3part.exons.begin() + 1
+            shift = prime5part.breakpoint - prime3part.exons.begin() + 1
         else:
             shift = prime5part.exons.begin() - prime3part.exons.end()
         # we have to shift 3' only
@@ -513,7 +526,11 @@ def print_SV(vcf, svg, rest):
                 prime_5 = genes_to_join[0]
                 prime_3 = genes_to_join[1]
                 fusion = SV_Maker(prime_5, prime_3, start, end)
-                pic_count = makeSVG(fusion.fuse_tandem_genes(), svg, pic_count)
+                pic_count = makeSVG(fusion.fuse_tandem_genes(),
+                                    svg,
+                                    pic_count,
+                                    genes_to_join[0].gene_name,
+                                    genes_to_join[1].gene_name)
                 print("###############################################################################")
             elif transloc_re.match(line):  # translocations
                 print("----------------- processing translocation ---------------------- ",
@@ -557,7 +574,11 @@ def print_SV(vcf, svg, rest):
                             breakpoint = extract_breakpoint(sv_call[4])
                             fusion.assign_breakpoint_to_genes(breakpoint)
                             svg_coords = fusion.fuse_translocations(fusion.DIR_LEFT, fusion.DIR_LEFT)
-                            pic_count = makeSVG(svg_coords, svg, pic_count)
+                            pic_count = makeSVG(svg_coords,
+                                                svg,
+                                                pic_count,
+                                                genes_to_join[0].gene_name,
+                                                genes_to_join[1].gene_name)
                             fusion.print_properties()
                         else:
                             # for [mate[B-[mate[B we want right for both
