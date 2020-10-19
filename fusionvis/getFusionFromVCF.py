@@ -292,7 +292,7 @@ class SV_Maker:
         based03p = IntervalTree()
         for iv in shifted3p:
             based03p.add(Interval(iv.begin - left_shift, iv.end - left_shift))
-        return (based05p, based03p)
+        return based05p, based03p
 
     def fuse_inversion(self):
         based05p = None
@@ -406,6 +406,29 @@ class SV_Maker:
         print("gene coords:", self.prime3.chromosome + ":" + str(start) + "-" + str(end))
         self.prime5.print_as_bed()
         self.prime3.print_as_bed()
+
+def reverse_fusion(iv_tuple):
+    """
+    Now we have a fusion, but depicted as from 3'-5', so we want to rotate the whole picture with 180 degrees
+    :param iv_tuple: tuple with 0 shifted 5' and 3' choords
+    :return: two interval trees as 5' and 3' still, but rotated with 180 degrees
+    """
+    # we are assuming they are right to left
+    start = iv_tuple[1].begin()
+    end = iv_tuple[0].end()
+    length = end - start
+    p5 = IntervalTree()
+    for exon in iv_tuple[0]:
+        e_start = end - (exon.end - start)
+        e_end = end - (exon.begin - start)
+        p5.add(Interval(e_start, e_end))
+    p3 = IntervalTree()
+    for exon in iv_tuple[1]:
+        e_start = end - (exon.end - start)
+        e_end = end - (exon.begin - start)
+        p3.add(Interval(e_start, e_end))
+
+    return p5, p3
 
 
 def get_CDS_coords(ENS_ID, rest):
@@ -526,7 +549,9 @@ def print_SV(vcf, svg, rest):
                 prime_5 = genes_to_join[0]
                 prime_3 = genes_to_join[1]
                 fusion = SV_Maker(prime_5, prime_3, start, end)
-                pic_count = makeSVG(fusion.fuse_tandem_genes(),
+                fused_genes = fusion.fuse_tandem_genes()
+                (p5,p3) = reverse_fusion(fused_genes)
+                pic_count = makeSVG((p5,p3),
                                     svg,
                                     pic_count,
                                     genes_to_join[0].gene_name,
@@ -646,7 +671,7 @@ def makeSVG(fex, svg, pic_count, prime5name, prime3name):
     outfile = str(pic_count) + "_" + prime5name + "_" + prime3name + "-" + svg
     dwg = svgwrite.Drawing(filename=outfile, size=(w, h), debug=True)
     # background
-    dwg.add(dwg.rect(insert=(0, 0), size=(w, h), fill='white', stroke='black'))
+    dwg.add(dwg.rect(insert=(0, 0), size=(w, h), fill='white', stroke='white'))
     # exons
     shapes = dwg.add(dwg.g(id='shapes', fill='red'))
     # 5' part of exons
@@ -655,9 +680,9 @@ def makeSVG(fex, svg, pic_count, prime5name, prime3name):
     shapes = shape_intervals(dwg, shapes, fex[1], 'red')
     # introns
     shapes.add(dwg.rect(insert=(fex[0].begin() / 100 * mm, 8 * mm),
-                        size=(int(fex[0].begin() - fex[0].end()) / 100 * mm, 2 * mm), fill='blue'))
+                        size=(int(abs(fex[0].begin() - fex[0].end())) / 100 * mm, 2 * mm), fill='blue'))
     shapes.add(dwg.rect(insert=(fex[1].begin() / 100 * mm, 8 * mm),
-                        size=((fex[1].end()-fex[1].begin()) / 100 * mm, 2 * mm), fill='red'))
+                        size=(int(abs(fex[1].end()-fex[1].begin())) / 100 * mm, 2 * mm), fill='red'))
     dwg.save()
     print("Fusion picture is at", outfile)
     return pic_count + 1
