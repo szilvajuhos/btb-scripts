@@ -32,6 +32,7 @@ def print_coords_from_json(obj):
 def printJSON(id, rest):
     obj = None  # the JSON object we are playing with
     if rest:
+        server = "https://rest.ensembl.org"
         ext = "/lookup/id/" + id + "?expand=1"
         r = requests.get(server + ext, headers={"Content-Type": "application/json"})
         if not r.ok:
