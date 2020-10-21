@@ -143,8 +143,9 @@ class SV_Maker:
     DIR_LEFT = True
     DIR_RIGHT = False
 
-    def __init__(self, p5, p3, start, end):
+    def __init__(self, p5, p3, start, end, chrom):
         """
+        :param chrom: chromosome of the call (first col in the VCF)
         """
         self.prime5 = ExonCoords(p5.chromosome, p5.strand, 0, p5.gene_name, p5.exons)
         self.prime3 = ExonCoords(p3.chromosome, p3.strand, 0, p3.gene_name, p3.exons)
@@ -154,16 +155,26 @@ class SV_Maker:
         # which gene contain which endpoint, we have to assign
         # them separately - only if they are meaningful values
         if start is not None and end is not None and start > 0 and end > 0:
-            self.assign_breakpoint(start)
-            self.assign_breakpoint(end)
+            self.assign_breakpoint(start, chrom)
+            self.assign_breakpoint(end, chrom)
 
-    def assign_breakpoint(self, bp):
+    def assign_breakpoint(self, bp, chrom):
         for gene in [self.prime5, self.prime3]:
             gene_coords = gene.exons
             gene_ends = IntervalTree()
             gene_ends.add(Interval(gene_coords.begin(), gene_coords.end()))
             if gene_ends.at(bp):
                 gene.breakpoint = bp
+                print("Breakpoint", bp, "assigned to", gene.gene_name)
+                break;
+            else:
+                print("Breakpoint", bp, "is outside gene", gene.gene_name)
+        # there can be a chance that the breakpoint is outside of both genes, assign it to the closest one
+        for gene in [self.prime5, self.prime3]:
+            if gene.breakpoint == 0 and gene.chromosome == chrom and (
+                    abs(gene.exons.begin() - bp) < 20000 or abs(gene.exons.end() - bp) < 20000):
+                gene.breakpoint = bp
+                print("Breakpoint", bp, "assigned to", gene.gene_name)
 
     def assign_breakpoint_to_genes(self, bp: tuple):
         chromosome = bp[0]
@@ -180,8 +191,8 @@ class SV_Maker:
         # if the breakpoint is in an intron, we have to add a 1-base long interval at the breakpoint
         breakpoint_in_exon = True if len(gene.exons.at(gene.breakpoint)) > 0 else False
         if not breakpoint_in_exon:
-            print("**** intron breakpoint at -> ", gene.chromosome + ":" + str(gene.breakpoint-1))
-            gene.exons.add(Interval(gene.breakpoint-1,gene.breakpoint))
+            print("**** intron breakpoint at -> ", gene.chromosome + ":" + str(gene.breakpoint - 1))
+            gene.exons.add(Interval(gene.breakpoint - 1, gene.breakpoint))
         # when the breakpoint is in an exon, we have to shorten that one
         # by chopping out the unneeded part
         # TODO check it for tandem repeats as looks it was a bug
@@ -407,6 +418,7 @@ class SV_Maker:
         self.prime5.print_as_bed()
         self.prime3.print_as_bed()
 
+
 def reverse_fusion(iv_tuple):
     """
     Now we have a fusion, but depicted as from 3'-5', so we want to rotate the whole picture with 180 degrees
@@ -437,7 +449,7 @@ def get_CDS_coords(ENS_ID, rest):
     print("Looking up " + ENS_ID)
     if rest:
         ext = "/lookup/id/" + ENS_ID + "?expand=1"
-        r = requests.get(server+ext, headers={ "Content-Type" : "application/json"})
+        r = requests.get(server + ext, headers={"Content-Type": "application/json"})
         if not r.ok:
             r.raise_for_status()
             sys.exit()
@@ -445,7 +457,7 @@ def get_CDS_coords(ENS_ID, rest):
         json_file = open(ENS_ID + '.json', 'w')
         json_file.write(r.content.decode('utf-8'))
         json_file.close()
-    else:   # we are reading from file
+    else:  # we are reading from file
         with open(ENS_ID + '.json', 'r') as myfile:
             data = myfile.read()
         obj = json.loads(data)
@@ -455,6 +467,7 @@ def get_CDS_coords(ENS_ID, rest):
     # print("exons from ENSEMBL JSON:")
     # print_exons_as_bed(chromosome, IntervalTree(sorted(exon_intervals.items())), obj['display_name'])
     return (chromosome, obj['strand'], 0, obj['display_name'], IntervalTree(sorted(exon_intervals.items())))
+
 
 def read_from_json(obj):
     intree = IntervalTree()
@@ -466,17 +479,20 @@ def read_from_json(obj):
         for trs in obj['Transcript']:
             # go only for the canonical one
             if trs['is_canonical'] > 0:
+                print("Using canonical transcript", trs['id'], "/", trs['display_name'])
                 for exon in trs['Exon']:
                     intree.add(Interval(exon['start'], exon['end']))
     else:
         # it is a single transcript only
+        print("Using transcript", obj['id'], "/", obj['display_name'])
         for exon in obj['Exon']:
             intree.add(Interval(exon['start'], exon['end']))
 
     intree.merge_overlaps()
     return intree
 
-def print_exons_as_bed(chrom,exons,gene_name):
+
+def print_exons_as_bed(chrom, exons, gene_name):
     for item in exons:
         print(chrom + "\t" + str(item.begin) + "\t" + str(item.end) + "\t" + gene_name)
 
@@ -492,8 +508,8 @@ BND_dict = {}
 @click.command(context_settings=dict(help_option_names=['-h', '--help']))
 @click.option('--vcf', '-v', type=str, help='VCF file to get SVs generated by Manta', required=True)
 @click.option('--svg', '-s', type=str, help='The output SVG file name', required=True)
-@click.option('--rest/--no-rest', '-r', type=bool, help='Read from ENSEMBL REST or JSON file', required=False, default=True)
-
+@click.option('--rest/--no-rest', '-r', type=bool, help='Read from ENSEMBL REST or JSON file', required=False,
+              default=True)
 def print_SV(vcf, svg, rest):
     # comment regexp
     comment_re = re.compile("^#.*")
@@ -520,6 +536,7 @@ def print_SV(vcf, svg, rest):
         # it is PASS, has the annotation "gene_fusion" and certainly not a comment
         if filter_re.match(line) and fusion_re.match(line) and not comment_re.match(line):
             sv_call = line.split("\t")
+            start_chrom = sv_call[0]
             # process tandem duplications
             if tandem_re.match(line):
                 # parse snpEff annotations, and store fusions
@@ -548,10 +565,10 @@ def print_SV(vcf, svg, rest):
                 # now we should have the 5' as the first in the list
                 prime_5 = genes_to_join[0]
                 prime_3 = genes_to_join[1]
-                fusion = SV_Maker(prime_5, prime_3, start, end)
+                fusion = SV_Maker(prime_5, prime_3, start, end, start_chrom)
                 fused_genes = fusion.fuse_tandem_genes()
-                (p5,p3) = reverse_fusion(fused_genes)
-                pic_count = makeSVG((p5,p3),
+                (p5, p3) = reverse_fusion(fused_genes)
+                pic_count = makeSVG((p5, p3),
                                     svg,
                                     pic_count,
                                     genes_to_join[0].gene_name,
@@ -591,7 +608,7 @@ def print_SV(vcf, svg, rest):
                                 (prime_5, prime_3) = (genes_to_join[0], genes_to_join[1])
                             else:
                                 (prime_5, prime_3) = (genes_to_join[1], genes_to_join[0])
-                            fusion = SV_Maker(prime_5, prime_3, None, None)
+                            fusion = SV_Maker(prime_5, prime_3, None, None, start_chrom)
                             # have to find out how the breakpoints are assigned
                             # this is for the one in the VCF line
                             fusion.assign_breakpoint_to_genes((sv_call[0], int(sv_call[1])))
@@ -622,24 +639,25 @@ def print_SV(vcf, svg, rest):
                 # we can have more than one gene_fusion in the annotation list
                 for ann in annotations[1::]:
                     ann_items = ann.split('|')
-                    # this nasty below is to get the canonical gene IDs from the first entry of
+                    # this nasty below is to get the gene IDs from the first entry of
                     # annotations
                     if ann_items[1] == 'gene_fusion':
                         ENS_IDs = ann_items[4].split("&")
                         genes_to_join = [ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[0], rest)),
-                                        ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[1], rest))]
+                                         ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[1], rest))]
                         # put the 5' part forward:
-                        (prime_5,prime_3) = find_5prime_for_inversion(start, end, genes_to_join)
-                        fusion = SV_Maker(prime_5, prime_3, start, end)
+                        (prime_5, prime_3) = find_5prime_for_inversion(start, end, genes_to_join)
+                        fusion = SV_Maker(prime_5, prime_3, start, end, start_chrom)
                         # fusions at inversions can be either
                         # <--  --> or -->  <--
                         svg_coords = fusion.fuse_inversion()
                         pic_count = makeSVG(svg_coords, svg, pic_count, prime_5.gene_name, prime_3.gene_name)
                         fusion.print_properties()
 
+
 def find_5prime_for_inversion(start, end, gtj: list):
     """
-    We have two canonical genes, and we want to find out which one is the 5' and the 3'
+    We have two canonical transcripts, and we want to find out which one is the 5' and the 3'
     :param start: beginning of the inversion
     :param end: end of inversion
     :param gtj: list of ENSEMBL genes
@@ -649,22 +667,24 @@ def find_5prime_for_inversion(start, end, gtj: list):
     gtj0_iv = IntervalTree.from_tuples([(gtj[0].exons.begin(), gtj[0].exons.end())])
     gtj1_iv = IntervalTree.from_tuples([(gtj[1].exons.begin(), gtj[1].exons.end())])
     gene_tuple = ()
-    if gtj[0].strand > 0:   # first gene is forward
-        if gtj0_iv.at(start):   # and the start point is in the first gene
-            gene_tuple = (gtj[0], gtj[1])   # leave as it is
+    if gtj[0].strand > 0:  # first gene is forward
+        if gtj0_iv.at(start):  # and the start point is in the first gene
+            gene_tuple = (gtj[0], gtj[1])  # leave as it is
         else:
             gene_tuple = (gtj[1], gtj[0])
-    else:   # first gene is reverse
-        if gtj0_iv.at(start):   # this case the first gene will be the 3', so have to swap
+    else:  # first gene is reverse
+        if gtj0_iv.at(start):  # this case the first gene will be the 3', so have to swap
             gene_tuple = (gtj[1], gtj[0])
         else:
             gene_tuple = (gtj[0], gtj[1])
     return gene_tuple
 
+
 def get_transcript_IDs(ann):
     # splitting string that is like "t(11%3B6)(ENST00000406246:Glu3_Ter552%3BENST00000343882:Met1)"
-    transcripts = re.split('\(|\)|:|%3B',ann)
-    return [transcripts[4],transcripts[6]]
+    transcripts = re.split('\(|\)|:|%3B', ann)
+    return [transcripts[4], transcripts[6]]
+
 
 def makeSVG(fex, svg, pic_count, prime5name, prime3name):
     w, h = '100%', '100%'
@@ -682,21 +702,23 @@ def makeSVG(fex, svg, pic_count, prime5name, prime3name):
     shapes.add(dwg.rect(insert=(fex[0].begin() / 100 * mm, 8 * mm),
                         size=(int(abs(fex[0].begin() - fex[0].end())) / 100 * mm, 2 * mm), fill='blue'))
     shapes.add(dwg.rect(insert=(fex[1].begin() / 100 * mm, 8 * mm),
-                        size=(int(abs(fex[1].end()-fex[1].begin())) / 100 * mm, 2 * mm), fill='red'))
+                        size=(int(abs(fex[1].end() - fex[1].begin())) / 100 * mm, 2 * mm), fill='red'))
     dwg.save()
     print("Fusion picture is at", outfile)
     return pic_count + 1
 
+
 def shape_intervals(dwg, shapes, itv: ExonCoords, color):
     height = 2 * cm
     for iv in itv:
-        if abs(iv.end-iv.begin) > 1:
+        if abs(iv.end - iv.begin) > 1:
             s = iv.begin / 100
-            width = int(abs(iv.end - iv.begin + 100 ) / 100)
+            width = int(abs(iv.end - iv.begin + 100) / 100)
             # print("SVG:", s*mm, 0, width*mm, height)
             shapes.add(dwg.rect(insert=(s * mm, 0), size=(width * mm, height),
                                 fill=color, stroke=color, stroke_width=1))
     return shapes
+
 
 def extract_breakpoint(a_bp: str):
     # we are getting something like "A]CHR6:108561001]" or "[CHR8:108561001[T" string
@@ -710,6 +732,7 @@ def extract_breakpoint(a_bp: str):
         chrom = mate_list[1].lower()
         coords = int(mate_list[2])
     return (chrom, coords)
+
 
 if __name__ == "__main__":
     print_SV()
