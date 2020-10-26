@@ -1,57 +1,66 @@
-from scipy.cluster.hierarchy import linkage
-from scipy.cluster.hierarchy import dendrogram
-from scipy.spatial.distance import pdist
+#from scipy.cluster.hierarchy import linkage
+#from scipy.cluster.hierarchy import dendrogram
+#from scipy.spatial.distance import pdist
 import matplotlib
 from matplotlib import pyplot as plt
 import numpy as np
-from numpy import arange
+#from numpy import arange
 import click
-import os
+#import os
 
 
 class MakeHeat:
     """
     We are expecting a bunch of CSV files names as chr1.csv, chr2.csv, ... chrX.csv, chrY.csv 
     """
-    def __init__(self):
+    def __init__(self, step_size, index_file):
+        self._chrom_sizes = self._get_chromosome_sizes(index_file)
         self.chromList = list(range(1,23))+['X','Y']
         self.chroms = self._readCSVs()
         (self.min,self.max) = self._getExtremes()
         print("Min: "+str(self.min))
         print("Max: "+str(self.max))
+        # change font size
+        plt.rcParams.update({'font.size': 36})
+        fig = plt.figure(figsize=(64, 36))
+        spec = fig.add_gridspec(ncols=24, nrows=1,
+                                width_ratios=self._chrom_sizes,
+                                height_ratios=[1])
 
-        fig = plt.figure(figsize=(64,36))
-        #fig = plt.figure(figsize=(16,9))
-        #fig = plt.figure(figsize=(32,18))
-
-        chr1 = plt.subplot(1, 24, 1,title='chr1')
+        print("creating plot for chromosome ", 1, end='')
+        chr1 = fig.add_subplot(spec[0, 0], title='1')
         # set colormap
         cm = matplotlib.cm.bwr
 
-        samples = np.genfromtxt('chr1.csv',delimiter=',',usecols=(0),dtype=str)
+        samples = np.genfromtxt('chr1.csv', delimiter=',', usecols=[0], dtype=str)
 
         # generate data
         X = self.chroms['chr1']
         plt.tick_params(axis='x', which='both', bottom=False, top=True, labelbottom=True) 
         plt.tick_params(axis='y', which='both', left=True, right=False, labelleft=True)
+
+        plt.axvline(x=40)
         chr1.set_yticks(np.arange(X.shape[0]))
         chr1.set_yticklabels(samples)
         plt.pcolor(X,cmap='bwr', vmin=self.min, vmax=self.max)
 
         ########## next CHRs ################
 
-        for plot in list(range(2,23))+['X','Y']:
+        for plot in list(range(1,22))+['X','Y']:
             if type(plot) == int:
-                chrPlot = plt.subplot(1, 24, plot,title='chr'+str(plot))
+                chrPlot = fig.add_subplot(spec[0,plot], title=str(plot+1))
+                print(" ", plot+1, end='')
             if plot == 'X':
-                chrPlot = plt.subplot(1, 24, 23,title='chrX')
+                chrPlot = fig.add_subplot(spec[0, 22], title='X')
+                print(" ", 'X', end='')
             if plot == 'Y':
-                chrPlot = plt.subplot(1, 24, 24,title='chrY')
-               
+                chrPlot = fig.add_subplot(spec[0, 23], title='Y')
+                print(" ", 'Y', end='')
+
             X = self.chroms['chr'+str(plot)]
 
-            if plot == 8:
-                print(X)
+            #if plot == 8:
+            #    print(X)
             plt.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False) # labels along the bottom edge are off
             plt.tick_params(axis='y', which='both', left=False, right=False, labelleft=False) # labels along the left edge are off
             plt.pcolor(X,cmap='bwr', vmin=self.min, vmax=self.max)
@@ -61,6 +70,7 @@ class MakeHeat:
 
         plt.colorbar()
         plt.subplots_adjust(wspace=0.0, hspace=0.0)
+        print(" ready. Saving plot ...")
         plt.savefig("heatmap.png")
         print("Figure printed to heatmap.png")
         #plt.show()
@@ -107,10 +117,23 @@ class MakeHeat:
         return(-2,6)
         #return(minR,maxR)
 
-@click.command(context_settings = dict( help_option_names = ['-h', '--help'] ))
+    def _get_chromosome_sizes(self, index_file):
+        chrom_sizes = []
+        with open(index_file, 'r') as ifh:
+            # get only lines that are starting with "chr", and are not longer than 5 chars
+            for line in ifh:
+                line_list = line.split()
+                chromosome = line_list[0]
+                if len(chromosome) < 6 and chromosome.startswith('chr') and chromosome != 'chrM':
+                    chrom_sizes.append(int(int(line_list[1])/10000000))
+        return chrom_sizes
 
-def printCSV():
-    heatMap = MakeHeat()
+
+@click.command(context_settings = dict( help_option_names = ['-h', '--help'] ))
+@click.option('--step_size', '-s', type=int, help='Stepsize [250000]', required=False, default=250000)
+@click.option('--chr_index', '-i', type=str, help='Chromosomes index file', required=True)
+def printCSV(step_size, chr_index):
+    heatMap = MakeHeat(step_size, chr_index)
 
 if __name__ == "__main__":
   printCSV()
