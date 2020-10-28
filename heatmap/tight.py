@@ -27,7 +27,7 @@ class MakeHeat:
         print(self._centromeres)
         print(self._chrom_sizes)
         # change font size
-        plt.rcParams.update({'font.size': 36})
+        plt.rcParams.update({'font.size': 24})
         # create the figure
         fig = plt.figure(figsize=(64, 36))
         # make a grid for chromosomes (each column is a chromosome, its width is a ratio)
@@ -58,20 +58,21 @@ class MakeHeat:
 
         ########## next CHRs ################
 
-        for plot in list(range(1,22))+['X','Y']:
+        for plot in list(range(1,22))+['X', 'Y']:
+            chrom_id = str(plot+1) if type(plot) == int else plot
             if type(plot) == int:
-                chrPlot = fig.add_subplot(spec[0,plot], title=str(plot+1))
-                print(" ", plot+1, end='')
+                chrPlot = fig.add_subplot(spec[0,plot], title=chrom_id)
+                print(" ", chrom_id, end='')
             if plot == 'X':
-                chrPlot = fig.add_subplot(spec[0, 22], title='X')
+                chrPlot = fig.add_subplot(spec[0, 21], title=chrom_id)
                 print(" ", 'X', end='')
             if plot == 'Y':
-                chrPlot = fig.add_subplot(spec[0, 23], title='Y')
+                chrPlot = fig.add_subplot(spec[0, 22], title=chrom_id)
                 print(" ", 'Y', end='')
 
-            X = self.chroms['chr'+str(plot)]
+            X = self.chroms['chr'+chrom_id]
             # draw a line at the centromere
-            plt.axvline(x=self.centromere_at('chr'+str(plot)), linestyle=':', linewidth=1)
+            plt.axvline(x=self.centromere_at('chr'+chrom_id), linestyle=':', linewidth=1)
 
             plt.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False) # labels along the bottom edge are off
             plt.tick_params(axis='y', which='both', left=False, right=False, labelleft=False) # labels along the left edge are off
