@@ -13,7 +13,7 @@ class MakeHeat:
     """
     We are expecting a bunch of CSV files names as chr1.csv, chr2.csv, ... chrX.csv, chrY.csv 
     """
-    def __init__(self, step_size, index_file, centromeres):
+    def __init__(self, step_size, index_file, centromeres, out_file):
         self.chromList = list(range(1,23))+['X','Y']
         self._chrom_den = 10000000  # divide chromosome choord with this
         self._step_size = step_size
@@ -64,10 +64,10 @@ class MakeHeat:
                 chrPlot = fig.add_subplot(spec[0,plot], title=chrom_id)
                 print(" ", chrom_id, end='')
             if plot == 'X':
-                chrPlot = fig.add_subplot(spec[0, 21], title=chrom_id)
+                chrPlot = fig.add_subplot(spec[0, 22], title=chrom_id)
                 print(" ", 'X', end='')
             if plot == 'Y':
-                chrPlot = fig.add_subplot(spec[0, 22], title=chrom_id)
+                chrPlot = fig.add_subplot(spec[0, 23], title=chrom_id)
                 print(" ", 'Y', end='')
 
             X = self.chroms['chr'+chrom_id]
@@ -84,9 +84,9 @@ class MakeHeat:
         plt.colorbar()
         plt.subplots_adjust(wspace=0.0, hspace=0.0)
         print(" ready. Saving plot ...")
-        plt.savefig("heatmap.png")
-        print("Figure printed to heatmap.png")
-        plt.show()
+        plt.savefig(out_file)
+        print("Figure printed to",out_file)
+        # plt.show()
 
     def _get_centromeres(self, cf):
         centromere_coords = {}
@@ -168,8 +168,9 @@ class MakeHeat:
 @click.option('--step_size', '-s', type=int, help='Stepsize [250000]', required=False, default=250000)
 @click.option('--chr_index', '-i', type=str, help='Chromosomes index file', required=True)
 @click.option('--centromeres', '-c', type=str, help='Middle point of centromeres (chr coord)', required=True)
-def printCSV(step_size, chr_index, centromeres):
-    heatMap = MakeHeat(step_size, chr_index, centromeres)
+@click.option('--out_file', '-o', type=str, help='Outfile name (default: \'heatmap.png\'. Other formats: [png|svg|tiff|jpeg]', required=False, default='heatmap.png')
+def printCSV(step_size, chr_index, centromeres, out_file):
+    heatMap = MakeHeat(step_size, chr_index, centromeres, out_file)
 
 if __name__ == "__main__":
   printCSV()
