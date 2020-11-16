@@ -231,6 +231,63 @@ class SV_Maker:
                 tr_exons = self.get_left_part(gene)
         return ExonCoords(gene.chromosome, gene.strand, gene.breakpoint, gene.gene_name, tr_exons)
 
+    def fuse_deletion(self):
+        prime5part = None
+        prime3part = None
+        if self.prime5.strand < 0:
+            # |<-<-<-<-|     |<-<-<-<-|
+            #     |-------------|
+            # we need right part for 5' and left part for 3'
+            prime5part = ExonCoords(self.prime5.chromosome,
+                                    self.prime5.strand,
+                                    self.prime5.breakpoint,
+                                    self.prime5.gene_name,
+                                    self.get_right_part(self.prime5))
+            prime3part = ExonCoords(self.prime3.chromosome,
+                                    self.prime3.strand,
+                                    self.prime3.breakpoint,
+                                    self.prime3.gene_name,
+                                    self.get_left_part(self.prime3))
+        else:
+            # |->->->->|     |->->->->|
+            #     |-------------|
+            # we need left part for 5' and right part for 3'
+            prime5part = ExonCoords(self.prime5.chromosome,
+                                    self.prime5.strand,
+                                    self.prime5.breakpoint,
+                                    self.prime5.gene_name,
+                                    self.get_left_part(self.prime5))
+            prime3part = ExonCoords(self.prime3.chromosome,
+                                    self.prime3.strand,
+                                    self.prime3.breakpoint,
+                                    self.prime3.gene_name,
+                                    self.get_right_part(self.prime3))
+        prime5part.print_as_bed()
+        prime3part.print_as_bed()
+        # now move the 3' part to the 5' part
+        p5borders = (prime5part.exons.begin(), prime5part.exons.end())
+        p3borders = (prime3part.exons.begin(), prime3part.exons.end())
+        shift = 0
+        if prime5part.strand > 0:
+            shift = prime5part.breakpoint - prime3part.exons.begin() + 1
+        else:
+            shift = prime5part.exons.begin() - prime3part.exons.end()
+        # we have to shift 3' only
+        shifted3p = IntervalTree()
+        for iv in prime3part.exons:
+            shifted3p.add(Interval(iv.begin + shift, iv.end + shift))
+        shifted5p = prime5part.exons
+        # and now shift down the stuff to 0 for SVG
+        left_shift = (shifted5p | shifted3p).begin()
+        # TODO: DRY it out
+        based05p = IntervalTree()
+        for iv in shifted5p:
+            based05p.add(Interval(iv.begin - left_shift, iv.end - left_shift))
+        based03p = IntervalTree()
+        for iv in shifted3p:
+            based03p.add(Interval(iv.begin - left_shift, iv.end - left_shift))
+        return based05p, based03p
+
     def fuse_tandem_genes(self):
         # dealing with tandem repeats:
         # first we have to get parts by strand
@@ -518,6 +575,7 @@ def print_SV(vcf, svg, rest):
     tandem_re = re.compile(".*DUP:TANDEM.*")
     transloc_re = re.compile(".*MantaBND.*")
     inversion_re = re.compile(".*INV.*")
+    deletion_re = re.compile(".*MantaDEL.*")
     ann_re = re.compile(".*ID=ANN.*")
     # we are dealing with PASS only
     filter_re = re.compile(".*PASS.*")
@@ -653,7 +711,35 @@ def print_SV(vcf, svg, rest):
                         svg_coords = fusion.fuse_inversion()
                         pic_count = makeSVG(svg_coords, svg, pic_count, prime_5.gene_name, prime_3.gene_name)
                         fusion.print_properties()
-
+            elif deletion_re.match(line):
+                print("######################## processing DELETION ####################### ", sv_call[2])
+                start = int(sv_call[1])
+                annotations = sv_call[7].split("<DEL>")
+                end = int(annotations[0].split(";")[0].replace("END=", ""))
+                for ann in annotations[1::]:
+                    ann_items = ann.split('|')
+                    if ann_items[1] == 'gene_fusion':
+                        ENS_IDs = ann_items[4].split("&")
+                        genes_to_join = [ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[0], rest)),
+                                         ExonCoords.fromTuple(get_CDS_coords(ENS_IDs[1], rest))]
+                        # forward strands
+                        if genes_to_join[0].strand > 0 and genes_to_join[1].strand > 0:
+                            # order them by coordinates
+                            if genes_to_join[0].begin() > genes_to_join[1].begin():
+                                genes_to_join = [genes_to_join[1], genes_to_join[0]]
+                        else:  # negative strand
+                            if genes_to_join[0].begin() < genes_to_join[1].begin():  # note the relation sign <
+                                genes_to_join = [genes_to_join[1], genes_to_join[0]]
+                        fusion = SV_Maker(genes_to_join[0], genes_to_join[1], start, end, start_chrom)
+                        svg_coords = fusion.fuse_deletion()
+                        # have to reverse for reverse genes
+                        (p5, p3) = reverse_fusion(svg_coords)
+                        pic_count = makeSVG((p5, p3),
+                                            svg,
+                                            pic_count,
+                                            genes_to_join[0].gene_name,
+                                            genes_to_join[1].gene_name)
+                        fusion.print_properties()
 
 def find_5prime_for_inversion(start, end, gtj: list):
     """
